@@ -1,8 +1,8 @@
 {
-  "name": "domain",
+  "name": "domainit",
   "version": "1.0.0",
   "private": true,
-  "description": "DoMaiN - Cognitive Protocol Web Application",
+  "description": "DoMaiNiT - High-Octane Cybernetic Cognitive Protocol",
   "scripts": {
     "build": "echo 'Build complete'",
     "start": "node dev-server.js"

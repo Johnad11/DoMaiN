@@ -1,8 +1,8 @@
 /**
- * DoMaiN - Global State & Persistence Management
+ * DoMaiNiT - Global State & Persistence Management
  */
-const STORAGE_KEY = 'domain_state';
-const LEGACY_KEY = 'cognicycle_state';
+const STORAGE_KEY = 'domainit_state';
+const LEGACY_KEYS = ['domain_state', 'cognicycle_state'];
 
 const defaultGameState = {
   currentCycle: 1,
@@ -40,8 +40,14 @@ function saveState() {
 
 function loadState() {
   try {
-    // Check primary key first, fallback to legacy key if migrating
-    const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_KEY);
+    let stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      for (const legKey of LEGACY_KEYS) {
+        stored = localStorage.getItem(legKey);
+        if (stored) break;
+      }
+    }
+
     if (stored) {
       const parsed = JSON.parse(stored);
       gameState = {

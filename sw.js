@@ -1,8 +1,11 @@
-const CACHE_NAME = 'domain-cache-v2';
+const CACHE_NAME = 'domainit-cache-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './favicon.svg',
+  './icon-192.png',
+  './icon-512.png',
   './css/main.css',
   './css/games.css',
   './js/audio.js',

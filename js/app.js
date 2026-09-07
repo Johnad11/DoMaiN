@@ -1,5 +1,5 @@
 /**
- * DoMaiN - Application Lifecycle, HUD Coordinator & Game Dispatcher
+ * DoMaiNiT - Application Lifecycle, HUD Coordinator & Game Dispatcher
  */
 
 // DOM Elements
@@ -29,11 +29,70 @@ const btnResetData = document.getElementById('btn-reset-data');
 const btnSound = document.getElementById('btn-sound');
 const btnHelp = document.getElementById('btn-help');
 
+/* ======================================================== */
+/* GAMER RANKS & ROADMAP TRACKER                            */
+/* ======================================================== */
+function getOperativeRank(cycle, level) {
+  if (cycle === 1) {
+    return level <= 5 ? 'CADET' : 'OPERATIVE';
+  } else if (cycle === 2) {
+    return 'CYBER SPECIALIST';
+  } else if (cycle === 3) {
+    return 'CIPHER MASTER';
+  } else if (cycle === 4) {
+    return 'QUANTUM OPERATIVE';
+  } else {
+    return 'NEURAL OVERLORD';
+  }
+}
+
+function updateRoadmap(level) {
+  const steps = {
+    'road-logic': level >= 1 && level <= 3,
+    'road-memory': level >= 4 && level <= 6,
+    'road-spatial': level >= 7 && level <= 9,
+    'road-boss': level === 10
+  };
+  for (const [id, isActive] of Object.entries(steps)) {
+    const el = document.getElementById(id);
+    if (el) {
+      if (isActive) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+  }
+}
+
+function showComboPopup(streak) {
+  const el = document.createElement('div');
+  el.className = 'combo-popup';
+  el.innerHTML = `🔥 ${streak}X STREAK COMBO!`;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }, 1200);
+}
+
 function updateHUD() {
   if (hudCycle) hudCycle.textContent = gameState.currentCycle;
   if (hudLevel) hudLevel.textContent = gameState.currentLevel;
   if (hudXp) hudXp.textContent = gameState.totalXP;
   if (hudStreak) hudStreak.textContent = gameState.streak;
+
+  const rankEl = document.getElementById('hud-rank');
+  if (rankEl) {
+    rankEl.textContent = getOperativeRank(gameState.currentCycle, gameState.currentLevel);
+  }
+
+  const streakFlame = document.getElementById('streak-flame');
+  if (streakFlame) {
+    if (gameState.streak >= 2) {
+      streakFlame.classList.add('active');
+    } else {
+      streakFlame.classList.remove('active');
+    }
+  }
+
+  updateRoadmap(gameState.currentLevel);
 }
 
 let feedbackTimeout = null;
@@ -129,10 +188,13 @@ function stopBossTimer() {
 /* ======================================================== */
 /* PARTICLE FX, FLOATING XP & SCREEN SHAKE                  */
 /* ======================================================== */
-function showFloatingXP(amount, isBoss = false) {
+function showFloatingXP(amount, isBoss = false, streakBonus = 0) {
   const el = document.createElement('div');
   el.className = 'floating-xp';
-  el.textContent = `+${amount} XP${isBoss ? ' 🔥 2X BOSS!' : ' ⚡'}`;
+  let txt = `+${amount} XP`;
+  if (isBoss) txt += ' 🔥 2X BOSS!';
+  else if (streakBonus > 0) txt += ` ⚡ +${streakBonus} STREAK`;
+  el.textContent = txt;
   document.body.appendChild(el);
   setTimeout(() => {
     if (el.parentNode) el.parentNode.removeChild(el);
@@ -159,20 +221,20 @@ function triggerConfetti() {
   canvas.height = window.innerHeight;
 
   const particles = [];
-  const colors = ['#BB86FC', '#03DAC6', '#FFD700', '#FF4081', '#38BDF8', '#FFFFFF'];
-  const count = 50;
+  const colors = ['#00F0FF', '#7B2CBF', '#FF007F', '#00FFB2', '#FFD700', '#FFFFFF'];
+  const count = 60;
 
   for (let i = 0; i < count; i++) {
     particles.push({
-      x: canvas.width / 2 + (Math.random() - 0.5) * 140,
+      x: canvas.width / 2 + (Math.random() - 0.5) * 160,
       y: canvas.height * 0.45 + (Math.random() - 0.5) * 60,
-      vx: (Math.random() - 0.5) * 14,
-      vy: (Math.random() - 1.2) * 12 - 4,
+      vx: (Math.random() - 0.5) * 16,
+      vy: (Math.random() - 1.2) * 14 - 4,
       size: Math.random() * 8 + 4,
       color: colors[Math.floor(Math.random() * colors.length)],
       alpha: 1,
       rotation: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.2
+      rotSpeed: (Math.random() - 0.5) * 0.25
     });
   }
 
@@ -184,7 +246,7 @@ function triggerConfetti() {
     particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.35; // gravity
+      p.vy += 0.38; // gravity
       p.vx *= 0.98; // air drag
       p.rotation += p.rotSpeed;
       p.alpha -= 0.015;
@@ -202,7 +264,7 @@ function triggerConfetti() {
     });
 
     frames++;
-    if (alive > 0 && frames < 120) {
+    if (alive > 0 && frames < 130) {
       requestAnimationFrame(animate);
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -225,7 +287,15 @@ function initCurrentLevel() {
 
   const lvl = gameState.currentLevel;
 
-  // Check onboarding tutorials on level 1, 4, 7 and level 10
+  // Trigger stage card entrance animation
+  const stageCard = document.getElementById('active-stage-card');
+  if (stageCard) {
+    stageCard.classList.remove('stage-enter');
+    void stageCard.offsetWidth;
+    stageCard.classList.add('stage-enter');
+  }
+
+  // Tactical Briefings on first encounter of each domain
   if (lvl === 1 && !gameState.seenTutorials.level1) {
     showTutorial(1);
   } else if (lvl === 4 && !gameState.seenTutorials.level4) {
@@ -240,7 +310,7 @@ function initCurrentLevel() {
     // Logic (Codebreaker)
     if (badgeDomain) {
       badgeDomain.textContent = 'Logic Protocol';
-      badgeDomain.style.color = 'var(--accent)';
+      badgeDomain.style.color = '#00F0FF';
     }
     if (stageTitle) stageTitle.textContent = `Codebreaker (Stage ${lvl}/3)`;
     if (stageObjective) stageObjective.textContent = 'Crack the 4-color security cipher';
@@ -258,10 +328,10 @@ function initCurrentLevel() {
     // Spatial (Mental Rotation)
     if (badgeDomain) {
       badgeDomain.textContent = 'Spatial Protocol';
-      badgeDomain.style.color = '#34D399';
+      badgeDomain.style.color = '#00FFB2';
     }
     if (stageTitle) stageTitle.textContent = `Mental Rotation (Stage ${lvl - 6}/3)`;
-    if (stageObjective) stageObjective.textContent = 'Evaluate rotational symmetry';
+    if (stageObjective) stageObjective.textContent = 'Evaluate 3D rotational symmetry';
     activeMiniGameInstance = new MentalRotationGame(false);
   } else if (lvl === 10) {
     // Level 10: Boss Fight
@@ -284,6 +354,8 @@ function initCurrentLevel() {
       activeMiniGameInstance = new MentalRotationGame(true);
     }
   }
+
+  updateHUD();
 }
 
 function handleLevelPassed(domain, xpEarned) {
@@ -291,7 +363,8 @@ function handleLevelPassed(domain, xpEarned) {
   sound.playSuccess();
 
   const isBoss = gameState.currentLevel === 10;
-  const finalXP = isBoss ? xpEarned * 2 : xpEarned;
+  const streakBonus = gameState.streak >= 2 ? (gameState.streak - 1) * 15 : 0;
+  const finalXP = (isBoss ? xpEarned * 2 : xpEarned) + streakBonus;
 
   gameState.totalXP += finalXP;
   gameState.streak += 1;
@@ -299,11 +372,16 @@ function handleLevelPassed(domain, xpEarned) {
     gameState.domainStats[domain].wins += 1;
   }
 
+  // Trigger floating combo if on a streak
+  if (gameState.streak >= 2) {
+    showComboPopup(gameState.streak);
+  }
+
   // Trigger floating XP and celebratory particle confetti
-  showFloatingXP(finalXP, isBoss);
+  showFloatingXP(finalXP, isBoss, streakBonus);
   triggerConfetti();
 
-  setFeedback(`Protocol Cleared! +${finalXP} XP ${isBoss ? '(2x Boss Bonus!)' : ''}`, 'success');
+  setFeedback(`STAGE CLEARED! +${finalXP} XP ${isBoss ? '(2x Boss Bonus!)' : ''}`, 'success');
 
   setTimeout(() => {
     if (gameState.currentLevel === 10) {
@@ -319,7 +397,7 @@ function handleLevelPassed(domain, xpEarned) {
   }, 1500);
 }
 
-function handleLevelFailed(domain, failureReason = 'Calibration Failed') {
+function handleLevelFailed(domain, failureReason = 'Breach Detected') {
   stopBossTimer();
   sound.playFailure();
   triggerShake();
@@ -338,15 +416,15 @@ function handleLevelFailed(domain, failureReason = 'Calibration Failed') {
 }
 
 /* ======================================================== */
-/* TUTORIALS & ONBOARDING MODALS                            */
+/* TACTICAL BRIEFINGS & ONBOARDING MODALS                   */
 /* ======================================================== */
 function showTutorial(level) {
   if (!modalTutorial) return;
 
   if (level === 1) {
-    tutTitle.innerHTML = '<span>🧩</span> Logic: Codebreaker';
+    tutTitle.innerHTML = '<span>🧩</span> Logic: Codebreaker Protocol';
     tutContent.innerHTML = `
-      <p>Deduce the hidden 4-color sequence within the attempt limit.</p>
+      <p>Deduce the hidden 4-color security cipher within the attempt limit.</p>
       <ul>
         <li>Select color tokens into the 4 slots and click <strong>Submit Guess</strong>.</li>
         <li><strong>Black Peg (⚫)</strong>: Correct color in the exact correct position.</li>
@@ -356,9 +434,9 @@ function showTutorial(level) {
     `;
     gameState.seenTutorials.level1 = true;
   } else if (level === 4) {
-    tutTitle.innerHTML = '<span>⚡</span> Memory: Sequence Recall';
+    tutTitle.innerHTML = '<span>⚡</span> Memory: Sequence Recall Protocol';
     tutContent.innerHTML = `
-      <p>Watch the flashing circular pads and memorize the exact sequence pattern.</p>
+      <p>Observe the flashing circular pads and memorize the exact sequence pattern.</p>
       <ul>
         <li>Wait for the demonstration to finish playing.</li>
         <li>Tap the circular colored pads in the exact matching order.</li>
@@ -368,7 +446,7 @@ function showTutorial(level) {
     `;
     gameState.seenTutorials.level4 = true;
   } else if (level === 7) {
-    tutTitle.innerHTML = '<span>📐</span> Spatial: Mental Rotation';
+    tutTitle.innerHTML = '<span>📐</span> Spatial: Mental Rotation Protocol';
     tutContent.innerHTML = `
       <p>Inspect two isometric 3D block structures side-by-side.</p>
       <ul>
@@ -381,7 +459,7 @@ function showTutorial(level) {
   } else if (level === 10) {
     tutTitle.innerHTML = '<span>🚨</span> LEVEL 10: BOSS PROTOCOL';
     tutContent.innerHTML = `
-      <p>You have reached the cycle culmination test!</p>
+      <p>You have reached the cycle culmination combat test!</p>
       <ul>
         <li>A randomized cognitive domain mechanic will be deployed.</li>
         <li>A countdown timer is active (<strong>${Math.max(8, 15 - (gameState.currentCycle - 1))}s</strong>).</li>
@@ -398,12 +476,13 @@ function showTutorial(level) {
 function showCyclePromotionModal() {
   if (!modalTutorial) return;
   pauseBossTimer();
-  tutTitle.innerHTML = '<span>🏆</span> CYCLE COMPLETED!';
+  tutTitle.innerHTML = '<span>🏆</span> CYCLE CONQUERED!';
   tutContent.innerHTML = `
-    <p>Outstanding! You have completed <strong>Cycle ${gameState.currentCycle - 1}</strong>.</p>
+    <p>Incredible performance! You have conquered <strong>Cycle ${gameState.currentCycle - 1}</strong>.</p>
     <p style="margin-top: 10px;">Cycle <strong>${gameState.currentCycle}</strong> is now engaged:</p>
     <ul>
-      <li>Codebreaker palette expanded to <strong>${Math.min(6, 4 + gameState.currentCycle)}</strong> colors with fewer attempts.</li>
+      <li>Operative Rank upgraded to: <strong>${getOperativeRank(gameState.currentCycle, 1)}</strong>.</li>
+      <li>Codebreaker palette expanded to <strong>${Math.min(6, 4 + gameState.currentCycle)}</strong> colors with tighter attempts.</li>
       <li>Memory sequence target raised to length <strong>${6 + gameState.currentCycle}</strong>.</li>
       <li>Boss countdown tightened.</li>
     </ul>
@@ -415,7 +494,7 @@ if (btnDismissTut) {
   btnDismissTut.addEventListener('click', () => {
     modalTutorial.classList.remove('show');
     resumeBossTimer();
-    sound.playTone(440, 'triangle', 0.1, 0.1);
+    sound.playTone(520, 'sine', 0.1, 0.12);
     if (gameState.currentLevel === 1 && stageTitle && stageTitle.textContent.includes('Boss Challenge')) {
       initCurrentLevel();
     }
@@ -424,23 +503,28 @@ if (btnDismissTut) {
 
 if (btnHelp) {
   btnHelp.addEventListener('click', () => {
-    const lvl = gameState.currentLevel;
-    if (lvl >= 1 && lvl <= 3) showTutorial(1);
-    else if (lvl >= 4 && lvl <= 6) showTutorial(4);
-    else if (lvl >= 7 && lvl <= 9) showTutorial(7);
-    else if (lvl === 10) showTutorial(10);
+    showTutorial(gameState.currentLevel);
   });
 }
 
 /* ======================================================== */
-/* METRICS MODAL & DATA HANDLERS                            */
+/* OPERATIVE DOSSIER & COGNITIVE METRICS MODAL              */
 /* ======================================================== */
 function updateStatsModal() {
-  const { logic, memory, spatial } = gameState.domainStats;
+  const dossierRank = document.getElementById('dossier-rank');
+  const dossierStatus = document.getElementById('dossier-status');
+  if (dossierRank) {
+    dossierRank.textContent = `${getOperativeRank(gameState.currentCycle, gameState.currentLevel)} OPERATIVE`;
+  }
+  if (dossierStatus) {
+    dossierStatus.textContent = `Cycle ${gameState.currentCycle} • Level ${gameState.currentLevel} • ${gameState.totalXP} Total XP`;
+  }
 
+  const { logic, memory, spatial } = gameState.domainStats;
   const calcRate = (w, l) => {
     const total = w + l;
-    return total === 0 ? '0%' : Math.round((w / total) * 100) + '%';
+    if (total === 0) return '0%';
+    return `${Math.round((w / total) * 100)}%`;
   };
 
   const rateLogic = document.getElementById('stat-rate-logic');
@@ -474,13 +558,13 @@ if (btnCloseStats) {
 
 if (btnResetData) {
   btnResetData.addEventListener('click', () => {
-    if (confirm('Reset all DoMaiN metrics, levels, and progress to baseline?')) {
+    if (confirm('Reset all DoMaiNiT operative dossier stats, levels, and progress to baseline?')) {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(LEGACY_KEY);
+      for (const k of LEGACY_KEYS) localStorage.removeItem(k);
       gameState = { ...defaultGameState };
       saveState();
       if (modalStats) modalStats.classList.remove('show');
-      setFeedback('Progress reset to baseline.', 'accent');
+      setFeedback('Operative progress reset to baseline.', 'accent');
       initCurrentLevel();
     }
   });
@@ -490,8 +574,8 @@ if (btnSound) {
   btnSound.addEventListener('click', () => {
     sound.muted = !sound.muted;
     btnSound.textContent = sound.muted ? '🔇' : '🔊';
-    setFeedback(sound.muted ? 'Audio Muted' : 'Audio Enabled', 'normal');
-    if (!sound.muted) sound.playTone(440, 'triangle', 0.1, 0.1);
+    setFeedback(sound.muted ? 'Audio Muted' : 'Audio Active', 'normal');
+    if (!sound.muted) sound.playTone(440, 'sine', 0.1, 0.1);
   });
 }
 
@@ -514,11 +598,11 @@ if (btnCopyId) {
     const idText = document.getElementById('player-cloud-id')?.textContent;
     if (idText && idText !== 'Connecting...') {
       navigator.clipboard.writeText(idText).then(() => {
-        setFeedback('Player ID copied to clipboard!', 'success');
+        setFeedback('Operative ID copied to clipboard!', 'success');
         btnCopyId.textContent = 'Copied!';
         setTimeout(() => { btnCopyId.textContent = 'Copy'; }, 1800);
       }).catch(() => {
-        prompt('Copy your Player ID:', idText);
+        prompt('Copy your Operative ID:', idText);
       });
     }
   });
@@ -530,10 +614,10 @@ if (btnRestoreSave && inputTransferId) {
   btnRestoreSave.addEventListener('click', () => {
     const targetId = inputTransferId.value.trim();
     if (!targetId) {
-      alert('Please enter a valid Player ID to restore.');
+      alert('Please enter a valid Operative ID to restore.');
       return;
     }
-    if (confirm(`Restore save data from Player ID: ${targetId}? This will replace your current local progress.`)) {
+    if (confirm(`Restore save data from Operative ID: ${targetId}? This will replace your current local progress.`)) {
       if (typeof cloudSync !== 'undefined') {
         cloudSync.restoreFromPlayerId(targetId);
       }
@@ -547,7 +631,7 @@ if (btnRestoreSave && inputTransferId) {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
-      console.log('DoMaiN Service Worker registered:', reg.scope);
+      console.log('DoMaiNiT Service Worker registered:', reg.scope);
     }).catch((err) => {
       console.warn('Service Worker registration bypassed in local context:', err);
     });
