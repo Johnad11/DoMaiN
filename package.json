@@ -1,0 +1,10 @@
+{
+  "name": "domain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DoMaiN - Cognitive Protocol Web Application",
+  "scripts": {
+    "build": "echo 'Build complete'",
+    "start": "node dev-server.js"
+  }
+}
