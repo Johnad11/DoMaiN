@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DoMaiN - Cognitive Protocol</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/games.css">
+</head>
+<body>
+  <!-- Full-screen Particle FX Canvas -->
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Top Fixed Header -->
+  <header>
+    <div class="header-branding">
+      <div class="logo-icon">D</div>
+      <div class="brand-name">DoMaiN</div>
+    </div>
+    <div class="status-bar" id="header-status">
+      <div class="stat-pill">Cycle <span class="stat-val" id="hud-cycle">1</span></div>
+      <span class="stat-divider">|</span>
+      <div class="stat-pill">Level <span class="stat-val" id="hud-level">1</span></div>
+      <span class="stat-divider">|</span>
+      <div class="stat-pill">XP: <span class="stat-val" id="hud-xp">0</span></div>
+      <span class="stat-divider">|</span>
+      <div class="stat-pill">Streak: <span class="stat-val" id="hud-streak">0</span></div>
+      <span class="stat-divider">|</span>
+      <span class="cloud-status offline" id="cloud-status" title="Cloud Sync Status">⚡ <span class="cloud-text">Offline</span></span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="btn-help" title="Rules & Tutorial" aria-label="Rules & Tutorial">❓</button>
+      <button class="icon-btn" id="btn-sound" title="Toggle Sound" aria-label="Toggle Sound">🔊</button>
+      <button class="icon-btn" id="btn-stats" title="Cognitive Metrics" aria-label="Cognitive Metrics">📊</button>
+    </div>
+  </header>
+
+  <!-- Main Game Stage -->
+  <main>
+    <!-- Boss Banner & Timer -->
+    <div class="boss-banner" id="boss-banner">
+      <div class="boss-header-row">
+        <span class="boss-tag">⚠️ BOSS PROTOCOL ACTIVE</span>
+        <span class="boss-timer" id="boss-timer-display">15.0s</span>
+      </div>
+      <div class="timer-bar-container">
+        <div class="timer-bar-fill" id="boss-timer-bar"></div>
+      </div>
+    </div>
+
+    <!-- Active Stage Card -->
+    <div class="stage-card">
+      <div class="game-title-row">
+        <div>
+          <span class="game-domain-badge" id="badge-domain">Logic</span>
+          <h2 id="stage-title" style="margin-top: 6px; font-size: 1.25rem;">Codebreaker Protocol</h2>
+        </div>
+        <div class="game-objective" id="stage-objective">Deduce secret cipher</div>
+      </div>
+
+      <!-- Mount point for Mini-games -->
+      <div id="minigame-container" style="width: 100%;"></div>
+    </div>
+  </main>
+
+  <!-- Bottom Feedback Bar -->
+  <footer class="feedback-bar" id="feedback-bar">
+    Ready for Calibration
+  </footer>
+
+  <!-- Onboarding Tutorial Modal -->
+  <div class="modal-backdrop" id="modal-tutorial">
+    <div class="modal-box">
+      <div class="modal-title" id="tut-title">
+        <span>🧠</span> Calibration Briefing
+      </div>
+      <div class="modal-content" id="tut-content">
+        <!-- Injected dynamically based on level -->
+      </div>
+      <button class="btn btn-primary" id="btn-dismiss-tut" style="align-self: flex-end;">
+        Got it!
+      </button>
+    </div>
+  </div>
+
+  <!-- Cognitive Metrics Modal -->
+  <div class="modal-backdrop" id="modal-stats">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>📊</span> Cognitive Domain Metrics
+      </div>
+      <div class="modal-content">
+        <p>Telemetry recorded for this operative profile:</p>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-title">Logic</div>
+            <div class="stat-card-rate" id="stat-rate-logic">0%</div>
+            <div class="stat-card-sub" id="stat-sub-logic">0W / 0L</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Memory</div>
+            <div class="stat-card-rate" id="stat-rate-memory">0%</div>
+            <div class="stat-card-sub" id="stat-sub-memory">0W / 0L</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Spatial</div>
+            <div class="stat-card-rate" id="stat-rate-spatial">0%</div>
+            <div class="stat-card-sub" id="stat-sub-spatial">0W / 0L</div>
+          </div>
+        </div>
+
+        <!-- Cloud Account & Cross-Device Transfer -->
+        <div class="cloud-account-box">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #FFF; display: flex; justify-content: space-between;">
+            <span>☁️ Cloud Profile</span>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Anonymous ID</span>
+          </div>
+          <div class="cloud-id-row">
+            <span class="cloud-id-text" id="player-cloud-id">Connecting...</span>
+            <button class="btn btn-secondary" id="btn-copy-id" style="min-height: 32px; height: 32px; padding: 4px 12px; font-size: 0.75rem;">Copy</button>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+            Transfer / restore save from another device:
+          </div>
+          <div class="cloud-transfer-row">
+            <input type="text" class="cloud-transfer-input" id="input-transfer-id" placeholder="Paste Player ID here...">
+            <button class="btn btn-primary" id="btn-restore-save" style="min-height: 36px; height: 36px; padding: 6px 14px; font-size: 0.8rem;">Restore</button>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 10px;">
+        <button class="btn btn-secondary" id="btn-reset-data" style="color: var(--error);">
+          Reset Data
+        </button>
+        <button class="btn btn-primary" id="btn-close-stats">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs (Offline-First CDN Fallback) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <!-- Modular Scripts in Dependency Order -->
+  <script src="./js/audio.js"></script>
+  <script src="./js/cloud.js"></script>
+  <script src="./js/state.js"></script>
+  <script src="./js/games/codebreaker.js"></script>
+  <script src="./js/games/memory.js"></script>
+  <script src="./js/games/spatial.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

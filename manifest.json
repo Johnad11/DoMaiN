@@ -1,0 +1,9 @@
+{
+  "name": "DoMaiN",
+  "short_name": "DoMaiN",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#BB86FC",
+  "description": "DoMaiN - Cognitive Fitness Protocol: Logic, Memory, and Spatial Challenges."
+}
