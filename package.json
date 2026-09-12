@@ -6,6 +6,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
+    "postinstall": "npm install --prefix client",
     "build": "npm run build --prefix client",
     "dev:server": "node server/index.js",
     "dev:client": "npm run dev --prefix client",
