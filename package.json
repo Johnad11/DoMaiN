@@ -1,10 +1,22 @@
 {
-  "name": "domainit",
+  "name": "do-main-it",
   "version": "1.0.0",
   "private": true,
-  "description": "DoMaiNiT - High-Octane Cybernetic Cognitive Protocol",
+  "description": "DO-MAIN-IT — Real-time multiplayer quiz platform with AI Quiz Forge and Domain Battles hex conquest",
+  "main": "server/index.js",
   "scripts": {
-    "build": "echo 'Build complete'",
-    "start": "node dev-server.js"
+    "start": "node server/index.js",
+    "build": "npm run build --prefix client",
+    "dev:server": "node server/index.js",
+    "dev:client": "npm run dev --prefix client",
+    "dev": "npm run build --prefix client && node server/index.js",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
   }
 }

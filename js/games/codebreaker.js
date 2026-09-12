@@ -1,20 +1,45 @@
 /**
- * DoMaiN - Logic Protocol: Codebreaker
- * Deduce a 4-color security cipher with Black & White feedback pegs.
+ * DoMaiNiT - Logic Protocol: Codebreaker
+ * Deduce a 4-color secret code with Black & White clue pegs.
+ * Scaled across 50 levels with tactile undo and keyboard shortcuts.
  */
 class CodebreakerGame {
   constructor(isBoss = false) {
     this.isBoss = isBoss;
-    this.paletteColors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4'];
-    // Palette size = 4 + currentCycle (max 6)
-    this.activePaletteSize = Math.min(6, 4 + gameState.currentCycle);
+    const lvl = gameState.currentLevel || 1;
+    const sector = Math.min(5, Math.floor((lvl - 1) / 10) + 1);
+
+    this.paletteColors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+    this.colorNames = ['Red', 'Blue', 'Green', 'Amber', 'Purple', 'Pink'];
+
+    // Palette size: 4 in Sector 1, 5 in Sector 2, 6 in Sectors 3-5
+    if (sector === 1) {
+      this.activePaletteSize = 4;
+    } else if (sector === 2) {
+      this.activePaletteSize = 5;
+    } else {
+      this.activePaletteSize = 6;
+    }
     this.availableColors = this.paletteColors.slice(0, this.activePaletteSize);
 
-    // Win condition: Guess correctly within 9 - currentCycle attempts (min 6)
-    this.maxAttempts = Math.max(6, 9 - gameState.currentCycle);
+    // Max attempts scale down smoothly across 50 levels
+    if (isBoss) {
+      this.maxAttempts = Math.max(6, 8 - Math.floor((sector - 1) * 0.5));
+    } else if (sector === 1) {
+      this.maxAttempts = 9;
+    } else if (sector === 2) {
+      this.maxAttempts = 8;
+    } else if (sector === 3) {
+      this.maxAttempts = 8;
+    } else if (sector === 4) {
+      this.maxAttempts = 7;
+    } else {
+      this.maxAttempts = 6;
+    }
+
     this.attemptsUsed = 0;
 
-    // Generate secret random code of 4 colors
+    // Generate secret random code of 4 colors from available palette
     this.secretCode = [];
     for (let i = 0; i < 4; i++) {
       const randColor = this.availableColors[Math.floor(Math.random() * this.availableColors.length)];
@@ -25,12 +50,72 @@ class CodebreakerGame {
     this.selectedSlotIndex = 0;
     this.history = [];
 
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    window.addEventListener('keydown', this.handleKeyDown);
+
     this.render();
 
     if (this.isBoss) {
       startBossTimer(() => {
-        handleLevelFailed('logic', 'Boss Countdown Expired');
+        handleLevelFailed('logic', 'Time ran out before cracking the code!');
       });
+    }
+  }
+
+  handleKeyDown(e) {
+    // 1-6 keys for palette colors
+    const keyNum = parseInt(e.key, 10);
+    if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= this.activePaletteSize) {
+      const chosenColor = this.availableColors[keyNum - 1];
+      this.placeColor(chosenColor);
+      return;
+    }
+
+    if (e.key === 'Backspace') {
+      this.undoLastSlot();
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      this.submitGuess();
+      return;
+    }
+  }
+
+  placeColor(color) {
+    this.currentGuess[this.selectedSlotIndex] = color;
+    if (typeof sound !== 'undefined') {
+      sound.playTone(500 + this.selectedSlotIndex * 70, 'sine', 0.08, 0.12);
+    }
+
+    const filledIndex = this.selectedSlotIndex;
+    // Auto-advance to next empty slot
+    let nextEmpty = -1;
+    for (let i = 0; i < 4; i++) {
+      if (this.currentGuess[i] === null) {
+        nextEmpty = i;
+        break;
+      }
+    }
+    this.selectedSlotIndex = nextEmpty !== -1 ? nextEmpty : Math.min(3, filledIndex + 1);
+
+    this.render();
+
+    const updatedSlot = document.querySelector(`.guess-slot[data-slot="${filledIndex}"]`);
+    if (updatedSlot) {
+      updatedSlot.classList.add('pop');
+    }
+  }
+
+  undoLastSlot() {
+    // Find last filled slot
+    for (let i = 3; i >= 0; i--) {
+      if (this.currentGuess[i] !== null) {
+        this.currentGuess[i] = null;
+        this.selectedSlotIndex = i;
+        this.render();
+        return;
+      }
     }
   }
 
@@ -38,35 +123,70 @@ class CodebreakerGame {
     const container = document.getElementById('minigame-container');
     if (!container) return;
 
+    const remainingAttempts = this.maxAttempts - this.attemptsUsed;
+    const isLowAttempts = remainingAttempts <= 2;
+
     container.innerHTML = `
       <div class="codebreaker-area">
-        <div style="font-size: 0.9rem; color: var(--text-muted); display: flex; justify-content: space-between; width: 100%;">
-          <span>Attempts remaining: <strong style="color: var(--accent);">${this.maxAttempts - this.attemptsUsed}</strong></span>
-          <span>Palette: <strong>${this.activePaletteSize} Colors</strong></span>
+        <!-- Status Bar -->
+        <div class="game-meta-row">
+          <span>Attempts Left: <strong style="color: ${isLowAttempts ? 'var(--error)' : 'var(--accent)'};">${remainingAttempts}</strong> / ${this.maxAttempts}</span>
+          <span>Color Choices: <strong>${this.activePaletteSize}</strong></span>
         </div>
 
+        <!-- Clue Legend helper -->
+        <div class="clue-legend-bar">
+          <span class="legend-item"><span class="feedback-dot black"></span> Right Color & Exact Spot</span>
+          <span class="legend-sep">•</span>
+          <span class="legend-item"><span class="feedback-dot white"></span> Right Color, Wrong Spot</span>
+        </div>
+
+        <!-- History Board -->
         <div class="history-board" id="cb-history">
           ${this.renderHistoryRows()}
         </div>
 
-        <div class="active-guess-row">
-          ${[0, 1, 2, 3].map(i => `
-            <div class="guess-slot ${this.selectedSlotIndex === i ? 'selected' : ''}" 
-                 data-slot="${i}" 
-                 style="background-color: ${this.currentGuess[i] || 'transparent'};">
-            </div>
-          `).join('')}
+        <!-- Current Active Guess Slots -->
+        <div class="active-guess-section">
+          <div class="slots-label">YOUR CURRENT GUESS:</div>
+          <div class="active-guess-row">
+            ${[0, 1, 2, 3].map(i => `
+              <div class="guess-slot ${this.selectedSlotIndex === i ? 'selected' : ''}" 
+                   data-slot="${i}" 
+                   title="Slot ${i + 1}"
+                   style="background-color: ${this.currentGuess[i] || 'transparent'};">
+                ${!this.currentGuess[i] ? `<span class="slot-placeholder">${i + 1}</span>` : ''}
+              </div>
+            `).join('')}
+          </div>
         </div>
 
-        <div class="palette-picker">
-          ${this.availableColors.map(c => `
-            <button class="palette-color-btn" data-color="${c}" style="background-color: ${c};" title="Select color"></button>
-          `).join('')}
+        <!-- Color Palette Picker -->
+        <div class="palette-picker-wrapper">
+          <div class="palette-label">CHOOSE A COLOR:</div>
+          <div class="palette-picker">
+            ${this.availableColors.map((c, idx) => `
+              <button class="palette-color-btn" 
+                      data-color="${c}" 
+                      style="background-color: ${c};" 
+                      title="${this.colorNames[idx]} (Press ${idx + 1})">
+                <span class="key-hint">${idx + 1}</span>
+              </button>
+            `).join('')}
+          </div>
         </div>
 
-        <div style="display: flex; gap: 12px; width: 100%; max-width: 320px;">
-          <button class="btn btn-secondary" id="cb-btn-clear" style="flex: 1;">Clear</button>
-          <button class="btn btn-primary" id="cb-btn-submit" style="flex: 2;">Submit Guess</button>
+        <!-- Action Buttons -->
+        <div class="game-action-row">
+          <button class="btn btn-secondary" id="cb-btn-undo" title="Undo last color">
+            ↩ Undo
+          </button>
+          <button class="btn btn-secondary" id="cb-btn-clear" title="Clear all slots">
+            Clear
+          </button>
+          <button class="btn btn-primary" id="cb-btn-submit" title="Check your combination">
+            Submit
+          </button>
         </div>
       </div>
     `;
@@ -87,42 +207,36 @@ class CodebreakerGame {
     document.querySelectorAll('.palette-color-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const color = btn.getAttribute('data-color');
-        this.currentGuess[this.selectedSlotIndex] = color;
-        sound.playTone(500 + this.selectedSlotIndex * 80, 'sine', 0.1, 0.1);
-        
-        // Auto-advance to next empty slot
-        const filledIndex = this.selectedSlotIndex;
-        for (let i = 0; i < 4; i++) {
-          if (this.currentGuess[i] === null) {
-            this.selectedSlotIndex = i;
-            break;
-          }
-        }
-        this.render();
-        // Add pop bounce to the slot that was just filled
-        const updatedSlot = document.querySelector(`.guess-slot[data-slot="${filledIndex}"]`);
-        if (updatedSlot) {
-          updatedSlot.classList.add('pop');
-        }
+        this.placeColor(color);
       });
     });
 
+    // Undo button
+    document.getElementById('cb-btn-undo')?.addEventListener('click', () => {
+      this.undoLastSlot();
+    });
+
     // Clear guess button
-    document.getElementById('cb-btn-clear').addEventListener('click', () => {
+    document.getElementById('cb-btn-clear')?.addEventListener('click', () => {
       this.currentGuess = [null, null, null, null];
       this.selectedSlotIndex = 0;
       this.render();
     });
 
     // Submit guess button
-    document.getElementById('cb-btn-submit').addEventListener('click', () => {
+    document.getElementById('cb-btn-submit')?.addEventListener('click', () => {
       this.submitGuess();
     });
   }
 
   renderHistoryRows() {
     if (this.history.length === 0) {
-      return `<div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.9rem;">Submit your first 4-color hypothesis above.</div>`;
+      return `
+        <div class="history-empty">
+          <p>🎯 <strong>Pick 4 colors</strong> above and click <strong>Submit</strong>.</p>
+          <p class="history-empty-sub">Clue pegs will show how close your guess was!</p>
+        </div>
+      `;
     }
     return this.history.map((entry, idx) => `
       <div class="history-row">
@@ -130,10 +244,10 @@ class CodebreakerGame {
         <div class="peg-group">
           ${entry.guess.map(col => `<div class="color-peg" style="background-color: ${col};"></div>`).join('')}
         </div>
-        <div class="feedback-pegs">
-          ${Array(entry.black).fill(0).map(() => `<div class="feedback-dot black" title="Exact match"></div>`).join('')}
-          ${Array(entry.white).fill(0).map(() => `<div class="feedback-dot white" title="Color match"></div>`).join('')}
-          ${Array(Math.max(0, 4 - entry.black - entry.white)).fill(0).map(() => `<div class="feedback-dot" title="Miss"></div>`).join('')}
+        <div class="feedback-pegs" title="${entry.black} exact spots, ${entry.white} wrong spots">
+          ${Array(entry.black).fill(0).map(() => `<div class="feedback-dot black" title="Exact match (right color & right spot)"></div>`).join('')}
+          ${Array(entry.white).fill(0).map(() => `<div class="feedback-dot white" title="Color exists, but in wrong spot"></div>`).join('')}
+          ${Array(Math.max(0, 4 - entry.black - entry.white)).fill(0).map(() => `<div class="feedback-dot miss" title="Not in the secret code"></div>`).join('')}
         </div>
       </div>
     `).join('');
@@ -141,8 +255,8 @@ class CodebreakerGame {
 
   submitGuess() {
     if (this.currentGuess.some(c => c === null)) {
-      setFeedback('Fill all 4 slots before submitting!', 'error');
-      sound.playTone(200, 'sawtooth', 0.15, 0.15);
+      setFeedback('⚠️ Please fill all 4 color slots before submitting!', 'error');
+      if (typeof sound !== 'undefined') sound.playTone(220, 'sawtooth', 0.15, 0.15);
       return;
     }
 
@@ -182,21 +296,36 @@ class CodebreakerGame {
 
     // Check win condition
     if (black === 4) {
-      const bonusXP = (this.maxAttempts - this.attemptsUsed + 1) * 20;
-      setFeedback('Correct! Security cipher cracked!', 'success');
-      handleLevelPassed('logic', 100 + bonusXP);
+      const bonusXP = (this.maxAttempts - this.attemptsUsed + 1) * 25;
+      setFeedback(`🎉 Incredible deduction! Secret code cracked in ${this.attemptsUsed} attempt${this.attemptsUsed > 1 ? 's' : ''}!`, 'success');
+      handleLevelPassed('logic', 120 + bonusXP);
       return;
     }
 
     // Check loss condition
     if (this.attemptsUsed >= this.maxAttempts) {
-      setFeedback('Wrong! Maximum attempts exhausted!', 'error');
-      handleLevelFailed('logic', 'Codebreaker Breach Failed');
+      const colorDisplay = this.secretCode.map(c => {
+        const idx = this.paletteColors.indexOf(c);
+        return this.colorNames[idx] || 'Color';
+      }).join(', ');
+      setFeedback(`Out of attempts! The code was: ${colorDisplay}. You've got this, try again!`, 'error');
+      handleLevelFailed('logic', 'Code cracking attempts exhausted');
       return;
     }
 
-    sound.playTone(350, 'triangle', 0.12, 0.1);
-    setFeedback(`Wrong! Feedback: ${black} Exact (Black), ${white} Position (White)`, 'error');
+    if (typeof sound !== 'undefined') sound.playTone(340, 'triangle', 0.12, 0.1);
+    
+    // Human, friendly feedback message
+    let clueMsg = '';
+    if (black === 0 && white === 0) {
+      clueMsg = 'None of those colors are in the code!';
+    } else {
+      const parts = [];
+      if (black > 0) parts.push(`${black} in the exact spot ⚫`);
+      if (white > 0) parts.push(`${white} right color in wrong spot ⚪`);
+      clueMsg = parts.join(', ');
+    }
+    setFeedback(`Clues: ${clueMsg}`, 'normal');
     if (typeof triggerShake === 'function') triggerShake();
 
     // Reset current guess for next attempt
@@ -206,6 +335,6 @@ class CodebreakerGame {
   }
 
   destroy() {
-    // cleanup
+    window.removeEventListener('keydown', this.handleKeyDown);
   }
 }

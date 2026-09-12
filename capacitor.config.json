@@ -1,0 +1,25 @@
+{
+  "appId": "com.domainit.app",
+  "appName": "DO-MAIN-IT",
+  "webDir": "client/dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#0A0E1A",
+      "showSpinner": true,
+      "spinnerColor": "#00E5FF"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "dark"
+    }
+  },
+  "android": {
+    "backgroundColor": "#0A0E1A",
+    "allowMixedContent": true
+  }
+}

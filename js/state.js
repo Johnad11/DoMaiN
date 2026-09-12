@@ -5,8 +5,8 @@ const STORAGE_KEY = 'domainit_state';
 const LEGACY_KEYS = ['domain_state', 'cognicycle_state'];
 
 const defaultGameState = {
-  currentCycle: 1,
-  currentLevel: 1,
+  currentCycle: 1, // Prestige cycle after beating level 50
+  currentLevel: 1, // Progression from Level 1 to 50
   totalXP: 0,
   streak: 0,
   domainStats: {
@@ -15,11 +15,13 @@ const defaultGameState = {
     spatial: { wins: 0, losses: 0 }
   },
   seenTutorials: {
-    level1: false,
-    level4: false,
-    level7: false,
-    level10: false
-  }
+    logic: false,
+    memory: false,
+    spatial: false,
+    boss: false
+  },
+  sectorsUnlocked: 1,
+  highestLevelReached: 1
 };
 
 let gameState = { ...defaultGameState };
@@ -60,9 +62,21 @@ function loadState() {
         },
         seenTutorials: {
           ...defaultGameState.seenTutorials,
-          ...(parsed.seenTutorials || {})
-        }
+          ...(parsed.seenTutorials || {}),
+          logic: parsed.seenTutorials?.logic ?? parsed.seenTutorials?.level1 ?? false,
+          memory: parsed.seenTutorials?.memory ?? parsed.seenTutorials?.level4 ?? false,
+          spatial: parsed.seenTutorials?.spatial ?? parsed.seenTutorials?.level7 ?? false,
+          boss: parsed.seenTutorials?.boss ?? parsed.seenTutorials?.level10 ?? false
+        },
+        sectorsUnlocked: Math.max(1, Math.min(5, parsed.sectorsUnlocked || Math.floor(((parsed.currentLevel || 1) - 1) / 10) + 1)),
+        highestLevelReached: Math.max(parsed.highestLevelReached || 1, parsed.currentLevel || 1)
       };
+      if (typeof gameState.currentLevel !== 'number' || isNaN(gameState.currentLevel) || gameState.currentLevel < 1) {
+        gameState.currentLevel = 1;
+      }
+      if (gameState.currentLevel > 50) {
+        gameState.currentLevel = 50;
+      }
     }
   } catch (e) {
     console.error('Failed to load gameState, initializing defaults:', e);

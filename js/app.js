@@ -1,12 +1,14 @@
 /**
- * DoMaiNiT - Application Lifecycle, HUD Coordinator & Game Dispatcher
+ * DoMaiNiT - Application Coordinator & 50-Level Dispatcher
+ * Modern, offline-ready, responsive game engine.
  */
 
 // DOM Elements
-const hudCycle = document.getElementById('hud-cycle');
 const hudLevel = document.getElementById('hud-level');
+const hudSector = document.getElementById('hud-sector');
 const hudXp = document.getElementById('hud-xp');
 const hudStreak = document.getElementById('hud-streak');
+const hudRank = document.getElementById('hud-rank');
 const badgeDomain = document.getElementById('badge-domain');
 const stageTitle = document.getElementById('stage-title');
 const stageObjective = document.getElementById('stage-objective');
@@ -15,6 +17,15 @@ const gameContainer = document.getElementById('minigame-container');
 const bossBanner = document.getElementById('boss-banner');
 const bossTimerDisplay = document.getElementById('boss-timer-display');
 const bossTimerBar = document.getElementById('boss-timer-bar');
+
+// Roadmap Elements
+const roadmapSectorTitle = document.getElementById('roadmap-sector-title');
+const roadmapOverallPct = document.getElementById('roadmap-overall-pct');
+const overallBarFill = document.getElementById('overall-bar-fill');
+const labelRoadLogic = document.getElementById('label-road-logic');
+const labelRoadMemory = document.getElementById('label-road-memory');
+const labelRoadSpatial = document.getElementById('label-road-spatial');
+const labelRoadBoss = document.getElementById('label-road-boss');
 
 // Modals
 const modalTutorial = document.getElementById('modal-tutorial');
@@ -29,70 +40,110 @@ const btnResetData = document.getElementById('btn-reset-data');
 const btnSound = document.getElementById('btn-sound');
 const btnHelp = document.getElementById('btn-help');
 
+const modalVictory = document.getElementById('modal-victory');
+const btnVictoryPrestige = document.getElementById('btn-victory-prestige');
+const victoryFinalXp = document.getElementById('victory-final-xp');
+
 /* ======================================================== */
-/* GAMER RANKS & ROADMAP TRACKER                            */
+/* 50-LEVEL ARCHITECTURE & METADATA                         */
 /* ======================================================== */
-function getOperativeRank(cycle, level) {
-  if (cycle === 1) {
-    return level <= 5 ? 'CADET' : 'OPERATIVE';
-  } else if (cycle === 2) {
-    return 'CYBER SPECIALIST';
-  } else if (cycle === 3) {
-    return 'CIPHER MASTER';
-  } else if (cycle === 4) {
-    return 'QUANTUM OPERATIVE';
-  } else {
-    return 'NEURAL OVERLORD';
-  }
+const SECTORS = [
+  { id: 1, name: "Calibration Grid", range: [1, 10], boss: 10, desc: "Foundational pattern deduction & sensory tuning" },
+  { id: 2, name: "Synaptic Surge", range: [11, 20], boss: 20, desc: "Higher frequency memory & 5-color logic ciphers" },
+  { id: 3, name: "Deep Cognition", range: [21, 30], boss: 30, desc: "6-color code deduction & 3D compound rotations" },
+  { id: 4, name: "Quantum Core", range: [31, 40], boss: 40, desc: "Rapid synaptic recall & chiral spatial puzzles" },
+  { id: 5, name: "The Singularity", range: [41, 50], boss: 50, desc: "The ultimate 50-level cognitive pinnacle" }
+];
+
+function getCurrentSector(level) {
+  const boundedLevel = Math.max(1, Math.min(50, level));
+  return Math.min(5, Math.floor((boundedLevel - 1) / 10) + 1);
+}
+
+function getOperativeRank(level) {
+  if (level <= 5) return 'CADET OPERATIVE';
+  if (level <= 10) return 'SPECIALIST OPERATIVE';
+  if (level <= 15) return 'CYBER INFILTRATOR';
+  if (level <= 20) return 'SYNAPTIC STRIKER';
+  if (level <= 25) return 'CIPHER MASTER';
+  if (level <= 30) return 'NEURAL ARCHITECT';
+  if (level <= 35) return 'QUANTUM OPERATIVE';
+  if (level <= 40) return 'CORTEX VANGUARD';
+  if (level <= 45) return 'SINGULARITY MASTER';
+  return 'NEURAL OVERLORD';
 }
 
 function updateRoadmap(level) {
-  const steps = {
-    'road-logic': level >= 1 && level <= 3,
-    'road-memory': level >= 4 && level <= 6,
-    'road-spatial': level >= 7 && level <= 9,
-    'road-boss': level === 10
-  };
-  for (const [id, isActive] of Object.entries(steps)) {
-    const el = document.getElementById(id);
-    if (el) {
-      if (isActive) el.classList.add('active');
-      else el.classList.remove('active');
-    }
-  }
-}
+  const sectorNum = getCurrentSector(level);
+  const sectorInfo = SECTORS[sectorNum - 1];
+  const sectorStart = (sectorNum - 1) * 10 + 1;
+  const withinSectorIdx = (level - 1) % 10; // 0 to 9
 
-function showComboPopup(streak) {
-  const el = document.createElement('div');
-  el.className = 'combo-popup';
-  el.innerHTML = `🔥 ${streak}X STREAK COMBO!`;
-  document.body.appendChild(el);
-  setTimeout(() => {
-    if (el.parentNode) el.parentNode.removeChild(el);
-  }, 1200);
+  // Update Sector Header
+  if (roadmapSectorTitle) {
+    roadmapSectorTitle.textContent = `SECTOR ${sectorNum}: ${sectorInfo.name.toUpperCase()}`;
+  }
+
+  // Update Overall Percentage
+  const overallPercent = Math.min(100, Math.round((level / 50) * 100));
+  if (roadmapOverallPct) {
+    roadmapOverallPct.textContent = `Level ${level} of 50 • ${overallPercent}% Complete`;
+  }
+  if (overallBarFill) {
+    overallBarFill.style.width = `${overallPercent}%`;
+  }
+
+  // Update Node Labels for Current Sector
+  if (labelRoadLogic) labelRoadLogic.textContent = `${sectorStart}-${sectorStart + 2} LOGIC`;
+  if (labelRoadMemory) labelRoadMemory.textContent = `${sectorStart + 3}-${sectorStart + 5} MEMORY`;
+  if (labelRoadSpatial) labelRoadSpatial.textContent = `${sectorStart + 6}-${sectorStart + 8} SPATIAL`;
+  if (labelRoadBoss) labelRoadBoss.textContent = `${sectorNum * 10} BOSS ⚠️`;
+
+  // Highlight Active Step
+  const stepLogic = document.getElementById('road-logic');
+  const stepMemory = document.getElementById('road-memory');
+  const stepSpatial = document.getElementById('road-spatial');
+  const stepBoss = document.getElementById('road-boss');
+
+  if (stepLogic) stepLogic.classList.toggle('active', withinSectorIdx >= 0 && withinSectorIdx <= 2);
+  if (stepMemory) stepMemory.classList.toggle('active', withinSectorIdx >= 3 && withinSectorIdx <= 5);
+  if (stepSpatial) stepSpatial.classList.toggle('active', withinSectorIdx >= 6 && withinSectorIdx <= 8);
+  if (stepBoss) stepBoss.classList.toggle('active', withinSectorIdx === 9);
 }
 
 function updateHUD() {
-  if (hudCycle) hudCycle.textContent = gameState.currentCycle;
-  if (hudLevel) hudLevel.textContent = gameState.currentLevel;
-  if (hudXp) hudXp.textContent = gameState.totalXP;
-  if (hudStreak) hudStreak.textContent = gameState.streak;
+  const lvl = gameState.currentLevel || 1;
+  const sector = getCurrentSector(lvl);
 
-  const rankEl = document.getElementById('hud-rank');
-  if (rankEl) {
-    rankEl.textContent = getOperativeRank(gameState.currentCycle, gameState.currentLevel);
+  if (hudLevel) hudLevel.textContent = lvl;
+  if (hudSector) hudSector.textContent = sector;
+  if (hudXp) hudXp.textContent = (gameState.totalXP || 0).toLocaleString();
+  if (hudStreak) hudStreak.textContent = gameState.streak || 0;
+
+  if (hudRank) {
+    hudRank.textContent = getOperativeRank(lvl);
   }
 
   const streakFlame = document.getElementById('streak-flame');
   if (streakFlame) {
-    if (gameState.streak >= 2) {
+    if ((gameState.streak || 0) >= 2) {
       streakFlame.classList.add('active');
     } else {
       streakFlame.classList.remove('active');
     }
   }
 
-  updateRoadmap(gameState.currentLevel);
+  updateRoadmap(lvl);
+}
+
+function showComboPopup(streak) {
+  const el = document.createElement('div');
+  el.className = 'combo-popup';
+  el.innerHTML = `🔥 ${streak}X STREAK MULTIPLIER!`;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }, 1200);
 }
 
 let feedbackTimeout = null;
@@ -112,7 +163,7 @@ function setFeedback(message, type = 'normal') {
 
   feedbackTimeout = setTimeout(() => {
     feedbackBar.className = 'feedback-bar';
-  }, 2500);
+  }, 3200);
 }
 
 /* ======================================================== */
@@ -120,15 +171,17 @@ function setFeedback(message, type = 'normal') {
 /* ======================================================== */
 let bossInterval = null;
 let bossTimeRemaining = 0;
-let bossTotalTime = 15;
+let bossTotalTime = 16;
 let bossTimerPaused = false;
 
 function startBossTimer(onTimeUp) {
   stopBossTimer();
   if (bossBanner) bossBanner.style.display = 'flex';
-  
-  // 15 seconds initially, 15 - (currentCycle - 1) for subsequent, minimum 8
-  bossTotalTime = Math.max(8, 15 - (gameState.currentCycle - 1));
+
+  const sector = getCurrentSector(gameState.currentLevel);
+  // Sector 1: 16s, Sector 2: 14s, Sector 3: 12s, Sector 4: 10s, Sector 5: 8.5s
+  const timesBySector = [16, 14, 12, 10, 8.5];
+  bossTotalTime = timesBySector[sector - 1] || 10;
   bossTimeRemaining = bossTotalTime;
   bossTimerPaused = false;
 
@@ -152,7 +205,7 @@ function startBossTimer(onTimeUp) {
 
     bossTimeRemaining -= intervalMs / 1000;
     if (bossTimeRemaining <= 3 && bossTimeRemaining > 0) {
-      sound.playTick();
+      if (typeof sound !== 'undefined') sound.playTick();
     }
     if (bossTimeRemaining <= 0) {
       bossTimeRemaining = 0;
@@ -186,13 +239,13 @@ function stopBossTimer() {
 }
 
 /* ======================================================== */
-/* PARTICLE FX, FLOATING XP & SCREEN SHAKE                  */
+/* VISUAL EFFECTS & CELEBRATIONS                            */
 /* ======================================================== */
 function showFloatingXP(amount, isBoss = false, streakBonus = 0) {
   const el = document.createElement('div');
   el.className = 'floating-xp';
   let txt = `+${amount} XP`;
-  if (isBoss) txt += ' 🔥 2X BOSS!';
+  if (isBoss) txt += ' 👑 2X BOSS!';
   else if (streakBonus > 0) txt += ` ⚡ +${streakBonus} STREAK`;
   el.textContent = txt;
   document.body.appendChild(el);
@@ -205,7 +258,7 @@ function triggerShake() {
   const card = document.querySelector('.stage-card');
   if (card) {
     card.classList.remove('shake-error');
-    void card.offsetWidth; // trigger reflow
+    void card.offsetWidth;
     card.classList.add('shake-error');
     setTimeout(() => {
       card.classList.remove('shake-error');
@@ -222,14 +275,14 @@ function triggerConfetti() {
 
   const particles = [];
   const colors = ['#00F0FF', '#7B2CBF', '#FF007F', '#00FFB2', '#FFD700', '#FFFFFF'];
-  const count = 60;
+  const count = 65;
 
   for (let i = 0; i < count; i++) {
     particles.push({
-      x: canvas.width / 2 + (Math.random() - 0.5) * 160,
-      y: canvas.height * 0.45 + (Math.random() - 0.5) * 60,
-      vx: (Math.random() - 0.5) * 16,
-      vy: (Math.random() - 1.2) * 14 - 4,
+      x: canvas.width / 2 + (Math.random() - 0.5) * 180,
+      y: canvas.height * 0.45 + (Math.random() - 0.5) * 80,
+      vx: (Math.random() - 0.5) * 18,
+      vy: (Math.random() - 1.2) * 15 - 4,
       size: Math.random() * 8 + 4,
       color: colors[Math.floor(Math.random() * colors.length)],
       alpha: 1,
@@ -246,8 +299,8 @@ function triggerConfetti() {
     particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.38; // gravity
-      p.vx *= 0.98; // air drag
+      p.vy += 0.38;
+      p.vx *= 0.98;
       p.rotation += p.rotSpeed;
       p.alpha -= 0.015;
 
@@ -274,7 +327,7 @@ function triggerConfetti() {
 }
 
 /* ======================================================== */
-/* LEVEL CYCLE DISPATCHER                                   */
+/* 50-LEVEL DISPATCHER                                      */
 /* ======================================================== */
 let activeMiniGameInstance = null;
 
@@ -285,9 +338,11 @@ function initCurrentLevel() {
   }
   if (gameContainer) gameContainer.innerHTML = '';
 
-  const lvl = gameState.currentLevel;
+  const lvl = Math.max(1, Math.min(50, gameState.currentLevel || 1));
+  const sector = getCurrentSector(lvl);
+  const withinSectorIdx = (lvl - 1) % 10; // 0 to 9
 
-  // Trigger stage card entrance animation
+  // Stage card entrance animation
   const stageCard = document.getElementById('active-stage-card');
   if (stageCard) {
     stageCard.classList.remove('stage-enter');
@@ -295,60 +350,68 @@ function initCurrentLevel() {
     stageCard.classList.add('stage-enter');
   }
 
-  // Tactical Briefings on first encounter of each domain
-  if (lvl === 1 && !gameState.seenTutorials.level1) {
-    showTutorial(1);
-  } else if (lvl === 4 && !gameState.seenTutorials.level4) {
-    showTutorial(4);
-  } else if (lvl === 7 && !gameState.seenTutorials.level7) {
-    showTutorial(7);
-  } else if (lvl === 10 && !gameState.seenTutorials.level10) {
-    showTutorial(10);
+  // Show human onboarding tutorial on first encounter of each mechanic
+  if (withinSectorIdx >= 0 && withinSectorIdx <= 2 && !gameState.seenTutorials.logic) {
+    showTutorial('logic');
+  } else if (withinSectorIdx >= 3 && withinSectorIdx <= 5 && !gameState.seenTutorials.memory) {
+    showTutorial('memory');
+  } else if (withinSectorIdx >= 6 && withinSectorIdx <= 8 && !gameState.seenTutorials.spatial) {
+    showTutorial('spatial');
+  } else if (withinSectorIdx === 9 && !gameState.seenTutorials.boss) {
+    showTutorial('boss');
   }
 
-  if (lvl >= 1 && lvl <= 3) {
+  // Dispatch game according to level structure
+  if (withinSectorIdx >= 0 && withinSectorIdx <= 2) {
     // Logic (Codebreaker)
+    const stageInDomain = withinSectorIdx + 1;
     if (badgeDomain) {
       badgeDomain.textContent = 'Logic Protocol';
       badgeDomain.style.color = '#00F0FF';
     }
-    if (stageTitle) stageTitle.textContent = `Codebreaker (Stage ${lvl}/3)`;
-    if (stageObjective) stageObjective.textContent = 'Crack the 4-color security cipher';
+    if (stageTitle) stageTitle.textContent = `Codebreaker (Level ${lvl} of 50)`;
+    if (stageObjective) stageObjective.textContent = 'Crack the secret 4-color code';
     activeMiniGameInstance = new CodebreakerGame(false);
-  } else if (lvl >= 4 && lvl <= 6) {
+
+  } else if (withinSectorIdx >= 3 && withinSectorIdx <= 5) {
     // Memory (Sequence Recall)
+    const stageInDomain = withinSectorIdx - 2;
     if (badgeDomain) {
       badgeDomain.textContent = 'Memory Protocol';
       badgeDomain.style.color = '#38BDF8';
     }
-    if (stageTitle) stageTitle.textContent = `Sequence Recall (Stage ${lvl - 3}/3)`;
-    if (stageObjective) stageObjective.textContent = 'Retain & reproduce neural sequence';
+    if (stageTitle) stageTitle.textContent = `Sequence Recall (Level ${lvl} of 50)`;
+    if (stageObjective) stageObjective.textContent = 'Remember & repeat the light pattern';
     activeMiniGameInstance = new SequenceRecallGame(false);
-  } else if (lvl >= 7 && lvl <= 9) {
+
+  } else if (withinSectorIdx >= 6 && withinSectorIdx <= 8) {
     // Spatial (Mental Rotation)
+    const stageInDomain = withinSectorIdx - 5;
     if (badgeDomain) {
       badgeDomain.textContent = 'Spatial Protocol';
       badgeDomain.style.color = '#00FFB2';
     }
-    if (stageTitle) stageTitle.textContent = `Mental Rotation (Stage ${lvl - 6}/3)`;
-    if (stageObjective) stageObjective.textContent = 'Evaluate 3D rotational symmetry';
+    if (stageTitle) stageTitle.textContent = `Mental Rotation (Level ${lvl} of 50)`;
+    if (stageObjective) stageObjective.textContent = 'Check if 3D shapes match';
     activeMiniGameInstance = new MentalRotationGame(false);
-  } else if (lvl === 10) {
-    // Level 10: Boss Fight
+
+  } else if (withinSectorIdx === 9) {
+    // Boss Battle (Levels 10, 20, 30, 40, 50)
+    const sectorInfo = SECTORS[sector - 1];
     if (badgeDomain) {
-      badgeDomain.textContent = '⚠️ BOSS OVERRIDE';
+      badgeDomain.textContent = `⚠️ SECTOR ${sector} BOSS OVERRIDE`;
       badgeDomain.style.color = 'var(--error)';
     }
-    if (stageTitle) stageTitle.textContent = `Boss Challenge - Cycle ${gameState.currentCycle}`;
-    if (stageObjective) stageObjective.textContent = 'Neutralize before the breach countdown';
+    if (stageTitle) stageTitle.textContent = `Boss Challenge: ${sectorInfo.name} (Level ${lvl}/50)`;
+    if (stageObjective) stageObjective.textContent = 'Clear the challenge before the countdown hits 0!';
 
-    // Random pick from the 3 mechanics
-    const choices = ['logic', 'memory', 'spatial'];
-    const chosen = choices[Math.floor(Math.random() * choices.length)];
+    // Randomize domain for boss fight
+    const domains = ['logic', 'memory', 'spatial'];
+    const chosenDomain = domains[Math.floor(Math.random() * domains.length)];
 
-    if (chosen === 'logic') {
+    if (chosenDomain === 'logic') {
       activeMiniGameInstance = new CodebreakerGame(true);
-    } else if (chosen === 'memory') {
+    } else if (chosenDomain === 'memory') {
       activeMiniGameInstance = new SequenceRecallGame(true);
     } else {
       activeMiniGameInstance = new MentalRotationGame(true);
@@ -360,167 +423,269 @@ function initCurrentLevel() {
 
 function handleLevelPassed(domain, xpEarned) {
   stopBossTimer();
-  sound.playSuccess();
+  if (typeof sound !== 'undefined') sound.playSuccess();
 
-  const isBoss = gameState.currentLevel === 10;
-  const streakBonus = gameState.streak >= 2 ? (gameState.streak - 1) * 15 : 0;
+  const lvl = gameState.currentLevel || 1;
+  const isBoss = (lvl % 10 === 0);
+  const streakBonus = (gameState.streak || 0) >= 2 ? (gameState.streak - 1) * 20 : 0;
   const finalXP = (isBoss ? xpEarned * 2 : xpEarned) + streakBonus;
 
-  gameState.totalXP += finalXP;
-  gameState.streak += 1;
-  if (domain && gameState.domainStats[domain]) {
+  gameState.totalXP = (gameState.totalXP || 0) + finalXP;
+  gameState.streak = (gameState.streak || 0) + 1;
+
+  if (domain && gameState.domainStats && gameState.domainStats[domain]) {
     gameState.domainStats[domain].wins += 1;
   }
 
-  // Trigger floating combo if on a streak
   if (gameState.streak >= 2) {
     showComboPopup(gameState.streak);
   }
 
-  // Trigger floating XP and celebratory particle confetti
   showFloatingXP(finalXP, isBoss, streakBonus);
   triggerConfetti();
 
-  setFeedback(`STAGE CLEARED! +${finalXP} XP ${isBoss ? '(2x Boss Bonus!)' : ''}`, 'success');
+  setFeedback(`LEVEL ${lvl} CLEARED! +${finalXP} XP ${isBoss ? '👑 (2x Boss Bonus!)' : ''}`, 'success');
 
   setTimeout(() => {
-    if (gameState.currentLevel === 10) {
-      gameState.currentLevel = 1;
-      gameState.currentCycle += 1;
+    if (lvl === 50) {
+      // Game Beaten!
+      showGrandVictoryModal();
+    } else if (lvl % 10 === 0) {
+      // Sector Boss Cleared!
+      gameState.currentLevel += 1;
+      gameState.sectorsUnlocked = Math.max(gameState.sectorsUnlocked || 1, getCurrentSector(gameState.currentLevel));
       saveState();
-      showCyclePromotionModal();
+      showSectorClearModal(Math.floor(lvl / 10));
     } else {
       gameState.currentLevel += 1;
       saveState();
       initCurrentLevel();
     }
-  }, 1500);
+  }, 1600);
 }
 
-function handleLevelFailed(domain, failureReason = 'Breach Detected') {
+function handleLevelFailed(domain, failureReason = 'Challenge incomplete') {
   stopBossTimer();
-  sound.playFailure();
+  if (typeof sound !== 'undefined') sound.playFailure();
   triggerShake();
 
   gameState.streak = 0;
-  if (domain && gameState.domainStats[domain]) {
+  if (domain && gameState.domainStats && gameState.domainStats[domain]) {
     gameState.domainStats[domain].losses += 1;
   }
   saveState();
 
-  setFeedback(`${failureReason}. Streak Reset.`, 'error');
+  setFeedback(`${failureReason}. Take a breath and try again!`, 'error');
 
   setTimeout(() => {
     initCurrentLevel();
-  }, 1800);
+  }, 1900);
 }
 
 /* ======================================================== */
-/* TACTICAL BRIEFINGS & ONBOARDING MODALS                   */
+/* HUMAN-CENTERED INSTRUCTIONS & BRIEFINGS                  */
 /* ======================================================== */
-function showTutorial(level) {
+function showTutorial(domainOrLevel) {
   if (!modalTutorial) return;
 
-  if (level === 1) {
-    tutTitle.innerHTML = '<span>🧩</span> Logic: Codebreaker Protocol';
+  if (domainOrLevel === 'logic' || domainOrLevel === 1) {
+    tutTitle.innerHTML = '<span>🧩</span> How to Play: Crack the Code';
     tutContent.innerHTML = `
-      <p>Deduce the hidden 4-color security cipher within the attempt limit.</p>
-      <ul>
-        <li>Select color tokens into the 4 slots and click <strong>Submit Guess</strong>.</li>
-        <li><strong>Black Peg (⚫)</strong>: Correct color in the exact correct position.</li>
-        <li><strong>White Peg (⚪)</strong>: Correct color present, but wrong position.</li>
-        <li>Attempts allowed: <strong>${Math.max(6, 9 - gameState.currentCycle)}</strong>.</li>
-      </ul>
+      <p style="font-size: 0.95rem; margin-bottom: 12px;">
+        A hidden combination of <strong>4 colors</strong> has been chosen. Use logic and deduction to crack it!
+      </p>
+      <div class="tut-guide-box">
+        <strong>Simple Steps:</strong>
+        <ol>
+          <li>Click colors (or press keys <strong>1 to 6</strong>) to fill the 4 empty slots.</li>
+          <li>Hit <strong>Submit</strong> (or press <strong>Enter</strong>).</li>
+          <li>Look at your clue pegs to see how you did:
+            <ul>
+              <li>⚫ <strong>Black Peg</strong>: Right color in the <em>exact right spot</em>!</li>
+              <li>⚪ <strong>White Peg</strong>: Right color, but it’s in the <em>wrong spot</em>.</li>
+              <li>Empty: That color is not in the secret combination at all.</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+      <p class="tut-tip-banner">
+        💡 <strong>Pro Tip:</strong> On your first guess, try 4 completely different colors to quickly see which ones are part of the secret code!
+      </p>
     `;
-    gameState.seenTutorials.level1 = true;
-  } else if (level === 4) {
-    tutTitle.innerHTML = '<span>⚡</span> Memory: Sequence Recall Protocol';
+    gameState.seenTutorials.logic = true;
+
+  } else if (domainOrLevel === 'memory' || domainOrLevel === 4) {
+    tutTitle.innerHTML = '<span>⚡</span> How to Play: Pattern Recall';
     tutContent.innerHTML = `
-      <p>Observe the flashing circular pads and memorize the exact sequence pattern.</p>
-      <ul>
-        <li>Wait for the demonstration to finish playing.</li>
-        <li>Tap the circular colored pads in the exact matching order.</li>
-        <li>Each correct sequence increases length by 1.</li>
-        <li>Reach target length <strong>${6 + gameState.currentCycle}</strong> to clear!</li>
-      </ul>
+      <p style="font-size: 0.95rem; margin-bottom: 12px;">
+        Test and strengthen your memory by repeating light and sound sequences!
+      </p>
+      <div class="tut-guide-box">
+        <strong>Simple Steps:</strong>
+        <ol>
+          <li>Watch the pads carefully while the hub says <strong>WATCH</strong>.</li>
+          <li>Memorize the exact order the pads light up and chime.</li>
+          <li>When it switches to <strong>YOUR TURN</strong>, tap the pads in that exact same order (or press keys <strong>1, 2, 3, 4</strong>).</li>
+          <li>Clear the target pattern length to unlock the next level!</li>
+        </ol>
+      </div>
+      <p class="tut-tip-banner">
+        💡 <strong>Pro Tip:</strong> Say the colors or numbers quietly to yourself in rhythm (e.g., "Red, Blue, Yellow") to lock them into your memory!
+      </p>
     `;
-    gameState.seenTutorials.level4 = true;
-  } else if (level === 7) {
-    tutTitle.innerHTML = '<span>📐</span> Spatial: Mental Rotation Protocol';
+    gameState.seenTutorials.memory = true;
+
+  } else if (domainOrLevel === 'spatial' || domainOrLevel === 7) {
+    tutTitle.innerHTML = '<span>📐</span> How to Play: 3D Shape Match';
     tutContent.innerHTML = `
-      <p>Inspect two isometric 3D block structures side-by-side.</p>
-      <ul>
-        <li>Determine if <strong>Structure B</strong> is an identical shape rotated in 3D space, or a different / mirrored shape.</li>
-        <li>Click <strong>Yes (Same)</strong> or <strong>No (Different)</strong>.</li>
-        <li>Achieve <strong>5 correct</strong> out of 7 trials to advance!</li>
-      </ul>
+      <p style="font-size: 0.95rem; margin-bottom: 12px;">
+        Train your spatial reasoning with 3D isometric structures!
+      </p>
+      <div class="tut-guide-box">
+        <strong>Simple Steps:</strong>
+        <ol>
+          <li>Look at <strong>Shape A</strong> on the left, then examine <strong>Shape B</strong> on the right.</li>
+          <li>Mentally rotate Shape A in your mind. Is Shape B the <em>exact same object</em> turned around in 3D?</li>
+          <li>Click <strong>YES (Same Shape)</strong> or press <strong>← Left Arrow</strong> if it matches.</li>
+          <li>Click <strong>NO (Different)</strong> or press <strong>→ Right Arrow</strong> if it was altered or mirrored.</li>
+        </ol>
+      </div>
+      <p class="tut-tip-banner">
+        💡 <strong>Pro Tip:</strong> Pick one distinctive colored corner or tip block and imagine where it would land if you rotated the shape!
+      </p>
     `;
-    gameState.seenTutorials.level7 = true;
-  } else if (level === 10) {
-    tutTitle.innerHTML = '<span>🚨</span> LEVEL 10: BOSS PROTOCOL';
+    gameState.seenTutorials.spatial = true;
+
+  } else if (domainOrLevel === 'boss' || domainOrLevel === 10) {
+    tutTitle.innerHTML = '<span>🚨</span> SECTOR BOSS PROTOCOL!';
     tutContent.innerHTML = `
-      <p>You have reached the cycle culmination combat test!</p>
-      <ul>
-        <li>A randomized cognitive domain mechanic will be deployed.</li>
-        <li>A countdown timer is active (<strong>${Math.max(8, 15 - (gameState.currentCycle - 1))}s</strong>).</li>
-        <li>Clear the challenge before the timer strikes zero for <strong>2x XP</strong> and cycle advancement!</li>
-      </ul>
+      <p style="font-size: 0.95rem; margin-bottom: 12px;">
+        You've reached the Sector Boss! This is your milestone exam.
+      </p>
+      <div class="tut-guide-box">
+        <ul>
+          <li>A randomized test from Logic, Memory, or Spatial will be deployed.</li>
+          <li>A live countdown timer will be running at the top!</li>
+          <li>Beat the challenge before the countdown expires to earn <strong>DOUBLE XP</strong> and unlock the next Sector!</li>
+        </ul>
+      </div>
     `;
-    gameState.seenTutorials.level10 = true;
+    gameState.seenTutorials.boss = true;
   }
+
   saveState();
   pauseBossTimer();
+  if (btnDismissTut) btnDismissTut.textContent = 'Return';
   modalTutorial.classList.add('show');
 }
 
-function showCyclePromotionModal() {
+function showSectorClearModal(completedSectorNum) {
   if (!modalTutorial) return;
   pauseBossTimer();
-  tutTitle.innerHTML = '<span>🏆</span> CYCLE CONQUERED!';
+  const nextSector = SECTORS[completedSectorNum]; // 0-indexed next
+  tutTitle.innerHTML = '<span>🏆</span> SECTOR CONQUERED!';
   tutContent.innerHTML = `
-    <p>Incredible performance! You have conquered <strong>Cycle ${gameState.currentCycle - 1}</strong>.</p>
-    <p style="margin-top: 10px;">Cycle <strong>${gameState.currentCycle}</strong> is now engaged:</p>
-    <ul>
-      <li>Operative Rank upgraded to: <strong>${getOperativeRank(gameState.currentCycle, 1)}</strong>.</li>
-      <li>Codebreaker palette expanded to <strong>${Math.min(6, 4 + gameState.currentCycle)}</strong> colors with tighter attempts.</li>
-      <li>Memory sequence target raised to length <strong>${6 + gameState.currentCycle}</strong>.</li>
-      <li>Boss countdown tightened.</li>
-    </ul>
+    <div style="text-align: center; margin: 10px 0;">
+      <div style="font-size: 2.4rem;">🎉</div>
+      <h3 style="color: var(--accent); margin: 6px 0;">SECTOR ${completedSectorNum} COMPLETE!</h3>
+      <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 12px;">
+        You conquered all 10 levels of Sector ${completedSectorNum}. Outstanding cognitive endurance!
+      </p>
+      ${nextSector ? `
+        <div style="background: rgba(0, 240, 255, 0.08); padding: 12px; border-radius: 8px; border: 1px solid var(--surface-border); text-align: left;">
+          <div style="font-weight: 700; color: #FFF; font-size: 0.9rem;">ENTERING SECTOR ${nextSector.id}: ${nextSector.name.toUpperCase()}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">${nextSector.desc}</div>
+          <div style="font-size: 0.8rem; color: var(--success); margin-top: 6px;">Rank Status: ${getOperativeRank(gameState.currentLevel)}</div>
+        </div>
+      ` : ''}
+    </div>
   `;
+  if (btnDismissTut) btnDismissTut.textContent = 'Continue to Next Sector ⚡';
   modalTutorial.classList.add('show');
+}
+
+function showGrandVictoryModal() {
+  if (modalVictory) {
+    if (victoryFinalXp) victoryFinalXp.textContent = (gameState.totalXP || 0).toLocaleString() + ' XP';
+    modalVictory.classList.add('show');
+    triggerConfetti();
+  }
+}
+
+if (btnVictoryPrestige) {
+  btnVictoryPrestige.addEventListener('click', () => {
+    modalVictory.classList.remove('show');
+    gameState.currentLevel = 1;
+    gameState.currentCycle = (gameState.currentCycle || 1) + 1;
+    saveState();
+    setFeedback(`Prestige Cycle ${gameState.currentCycle} Engaged! Good luck, Overlord!`, 'accent');
+    initCurrentLevel();
+  });
 }
 
 if (btnDismissTut) {
   btnDismissTut.addEventListener('click', () => {
     modalTutorial.classList.remove('show');
+    btnDismissTut.textContent = 'Return';
     resumeBossTimer();
-    sound.playTone(520, 'sine', 0.1, 0.12);
-    if (gameState.currentLevel === 1 && stageTitle && stageTitle.textContent.includes('Boss Challenge')) {
-      initCurrentLevel();
-    }
+    if (typeof sound !== 'undefined') sound.playTone(520, 'sine', 0.1, 0.12);
   });
 }
 
 if (btnHelp) {
   btnHelp.addEventListener('click', () => {
-    showTutorial(gameState.currentLevel);
+    const lvl = gameState.currentLevel || 1;
+    const withinSectorIdx = (lvl - 1) % 10;
+    if (withinSectorIdx >= 0 && withinSectorIdx <= 2) showTutorial('logic');
+    else if (withinSectorIdx >= 3 && withinSectorIdx <= 5) showTutorial('memory');
+    else if (withinSectorIdx >= 6 && withinSectorIdx <= 8) showTutorial('spatial');
+    else showTutorial('boss');
   });
 }
 
 /* ======================================================== */
-/* OPERATIVE DOSSIER & COGNITIVE METRICS MODAL              */
+/* OPERATIVE DOSSIER & 50-LEVEL METRICS                     */
 /* ======================================================== */
 function updateStatsModal() {
+  const lvl = gameState.currentLevel || 1;
+  const sector = getCurrentSector(lvl);
+
   const dossierRank = document.getElementById('dossier-rank');
   const dossierStatus = document.getElementById('dossier-status');
   if (dossierRank) {
-    dossierRank.textContent = `${getOperativeRank(gameState.currentCycle, gameState.currentLevel)} OPERATIVE`;
+    dossierRank.textContent = getOperativeRank(lvl);
   }
   if (dossierStatus) {
-    dossierStatus.textContent = `Cycle ${gameState.currentCycle} • Level ${gameState.currentLevel} • ${gameState.totalXP} Total XP`;
+    dossierStatus.textContent = `Level ${lvl} of 50 • Sector ${sector}/5 • ${(gameState.totalXP || 0).toLocaleString()} Total XP`;
   }
 
-  const { logic, memory, spatial } = gameState.domainStats;
+  // Render 5-Sector Grid in Dossier
+  const sectorsGrid = document.getElementById('dossier-sectors-grid');
+  if (sectorsGrid) {
+    sectorsGrid.innerHTML = SECTORS.map(s => {
+      const isCompleted = lvl > s.boss;
+      const isCurrent = sector === s.id;
+      const isLocked = lvl < s.range[0];
+
+      let statusBadge = isCompleted ? '✅ CLEARED' : (isCurrent ? '⚡ CURRENT' : '🔒 LOCKED');
+      return `
+        <div class="dossier-sector-card ${isCurrent ? 'current' : ''} ${isCompleted ? 'completed' : ''}">
+          <div class="sector-card-num">SECTOR ${s.id}</div>
+          <div class="sector-card-name">${s.name}</div>
+          <div class="sector-card-levels">Levels ${s.range[0]}-${s.range[1]}</div>
+          <div class="sector-card-status">${statusBadge}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Domain Win Rates
+  const { logic, memory, spatial } = gameState.domainStats || {
+    logic: { wins: 0, losses: 0 },
+    memory: { wins: 0, losses: 0 },
+    spatial: { wins: 0, losses: 0 }
+  };
+
   const calcRate = (w, l) => {
     const total = w + l;
     if (total === 0) return '0%';
@@ -558,13 +723,13 @@ if (btnCloseStats) {
 
 if (btnResetData) {
   btnResetData.addEventListener('click', () => {
-    if (confirm('Reset all DoMaiNiT operative dossier stats, levels, and progress to baseline?')) {
+    if (confirm('Are you sure you want to reset all progress back to Level 1?')) {
       localStorage.removeItem(STORAGE_KEY);
       for (const k of LEGACY_KEYS) localStorage.removeItem(k);
       gameState = { ...defaultGameState };
       saveState();
       if (modalStats) modalStats.classList.remove('show');
-      setFeedback('Operative progress reset to baseline.', 'accent');
+      setFeedback('Progress reset to Level 1 baseline.', 'accent');
       initCurrentLevel();
     }
   });
@@ -572,68 +737,24 @@ if (btnResetData) {
 
 if (btnSound) {
   btnSound.addEventListener('click', () => {
-    sound.muted = !sound.muted;
-    btnSound.textContent = sound.muted ? '🔇' : '🔊';
-    setFeedback(sound.muted ? 'Audio Muted' : 'Audio Active', 'normal');
-    if (!sound.muted) sound.playTone(440, 'sine', 0.1, 0.1);
-  });
-}
-
-/* ======================================================== */
-/* CLOUD ACCOUNT & DEVICE TRANSFER HANDLERS                 */
-/* ======================================================== */
-const cloudStatusEl = document.getElementById('cloud-status');
-if (cloudStatusEl) {
-  cloudStatusEl.addEventListener('click', () => {
-    if (typeof cloudSync !== 'undefined') {
-      cloudSync.pullSave();
-      setFeedback('Checking Cloud Sync...', 'accent');
-    }
-  });
-}
-
-const btnCopyId = document.getElementById('btn-copy-id');
-if (btnCopyId) {
-  btnCopyId.addEventListener('click', () => {
-    const idText = document.getElementById('player-cloud-id')?.textContent;
-    if (idText && idText !== 'Connecting...') {
-      navigator.clipboard.writeText(idText).then(() => {
-        setFeedback('Operative ID copied to clipboard!', 'success');
-        btnCopyId.textContent = 'Copied!';
-        setTimeout(() => { btnCopyId.textContent = 'Copy'; }, 1800);
-      }).catch(() => {
-        prompt('Copy your Operative ID:', idText);
-      });
-    }
-  });
-}
-
-const btnRestoreSave = document.getElementById('btn-restore-save');
-const inputTransferId = document.getElementById('input-transfer-id');
-if (btnRestoreSave && inputTransferId) {
-  btnRestoreSave.addEventListener('click', () => {
-    const targetId = inputTransferId.value.trim();
-    if (!targetId) {
-      alert('Please enter a valid Operative ID to restore.');
-      return;
-    }
-    if (confirm(`Restore save data from Operative ID: ${targetId}? This will replace your current local progress.`)) {
-      if (typeof cloudSync !== 'undefined') {
-        cloudSync.restoreFromPlayerId(targetId);
-      }
+    if (typeof sound !== 'undefined') {
+      sound.muted = !sound.muted;
+      btnSound.textContent = sound.muted ? '🔇' : '🔊';
+      setFeedback(sound.muted ? 'Audio Muted' : 'Audio Active', 'normal');
+      if (!sound.muted) sound.playTone(440, 'sine', 0.1, 0.1);
     }
   });
 }
 
 /* ======================================================== */
-/* PWA SERVICE WORKER REGISTRATION                          */
+/* SERVICE WORKER REGISTRATION (OFFLINE CACHING)            */
 /* ======================================================== */
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
-      console.log('DoMaiNiT Service Worker registered:', reg.scope);
+      console.log('DoMaiNiT Service Worker registered for offline play:', reg.scope);
     }).catch((err) => {
-      console.warn('Service Worker registration bypassed in local context:', err);
+      console.warn('Service Worker note:', err);
     });
   }
 }
@@ -645,9 +766,4 @@ window.addEventListener('DOMContentLoaded', () => {
   loadState();
   initCurrentLevel();
   registerServiceWorker();
-
-  // Initialize Cloud Sync in background
-  if (typeof cloudSync !== 'undefined' && typeof cloudSync.init === 'function') {
-    cloudSync.init();
-  }
 });
