@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server/index.js",
     "postinstall": "npm install --prefix client",
-    "build": "npm install --prefix client && npm run build --prefix client",
+    "build": "npm run build --prefix client || echo 'Using pre-built client'",
     "dev:server": "node server/index.js",
     "dev:client": "npm run dev --prefix client",
     "dev": "npm run build --prefix client && node server/index.js",
