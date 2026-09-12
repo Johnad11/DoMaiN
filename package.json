@@ -4,10 +4,13 @@
   "private": true,
   "description": "DO-MAIN-IT — Real-time multiplayer quiz platform with AI Quiz Forge and Domain Battles hex conquest",
   "main": "server/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node server/index.js",
     "postinstall": "npm install --prefix client",
-    "build": "npm run build --prefix client",
+    "build": "npm install --prefix client && npm run build --prefix client",
     "dev:server": "node server/index.js",
     "dev:client": "npm run dev --prefix client",
     "dev": "npm run build --prefix client && node server/index.js",
