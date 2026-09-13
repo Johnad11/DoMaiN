@@ -251,11 +251,34 @@ io.on('connection', (socket) => {
   });
 });
 
-// Serve client build in production if available
+// Kill legacy service workers registered by previous projects
+app.get('/sw.js', (req, res) => {
+  res.set('Content-Type', 'application/javascript');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.send(`
+    self.addEventListener('install', () => self.skipWaiting());
+    self.addEventListener('activate', () => {
+      self.registration.unregister().then(() => {
+        return self.clients.matchAll();
+      }).then(clients => {
+        clients.forEach(client => client.navigate(client.url));
+      });
+    });
+  `);
+});
+
+// Serve client build in production if available with cache-busting for index.html
 const clientDistPath = path.join(__dirname, '../client/dist');
 if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+  app.use(express.static(clientDistPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
   app.use((req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 }
