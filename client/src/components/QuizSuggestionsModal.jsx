@@ -13,7 +13,7 @@ export default function QuizSuggestionsModal({ isOpen, onClose, onQuizCreated, o
   const [loadStep, setLoadStep] = useState(0);
 
   const LOADING_STEPS = [
-    'Connecting to Google Gemini 3.8 Flash AI...',
+    'Generating questions...',
     'Composing trivia questions & distractors...',
     'Verifying answers and hex territory values...',
     'Finalizing game deck...'
@@ -110,16 +110,11 @@ export default function QuizSuggestionsModal({ isOpen, onClose, onQuizCreated, o
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-heading font-extrabold text-lg text-bone">
-                  Quiz Suggestions
-                </h2>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-plasma/15 border border-cyan-plasma/40 text-cyan-plasma text-[10px] font-mono font-bold">
-                  ⚡ Gemini 3.8 Flash
-                </span>
-              </div>
+              <h2 className="font-heading font-extrabold text-lg text-bone">
+                Quiz Suggestions
+              </h2>
               <p className="text-xs text-ash">
-                Pick a topic and get high-quality trivia written by Google Gemini
+                Pick a topic and instantly get ready-to-play questions
               </p>
             </div>
           </div>
@@ -214,7 +209,7 @@ export default function QuizSuggestionsModal({ isOpen, onClose, onQuizCreated, o
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
-                    <span>Generate With Gemini 3.8 Flash</span>
+                    <span>Generate</span>
                   </>
                 )}
               </button>
