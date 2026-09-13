@@ -7,6 +7,7 @@ import GameHost from './screens/GameHost';
 import ReportHost from './screens/ReportHost';
 import JoinPlayer from './screens/JoinPlayer';
 import GamePlayer from './screens/GamePlayer';
+import ReportPlayer from './screens/ReportPlayer';
 import QuizSuggestionsModal from './components/QuizSuggestionsModal';
 import CreateCustomQuizModal from './components/CreateCustomQuizModal';
 import HowToPlayModal from './components/HowToPlayModal';
@@ -48,6 +49,7 @@ export default function App() {
   const [joinErrorMessage, setJoinErrorMessage] = useState('');
   const [takenColors, setTakenColors] = useState([]);
   const [takenNames, setTakenNames] = useState([]);
+  const [playerEndReport, setPlayerEndReport] = useState(null);
 
   // Modals
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
@@ -156,6 +158,7 @@ export default function App() {
       setHostGameStatus('GAME_OVER');
       setPlayerGameStatus('GAME_OVER');
       setHostEndReport(report);
+      setPlayerEndReport(report);
     });
 
     // --- Player Socket Listeners ---
@@ -437,23 +440,17 @@ export default function App() {
           )}
 
           {playerGameStatus === 'GAME_OVER' && (
-            <div className="min-h-screen bg-obsidian bg-cyber-grid text-bone flex flex-col justify-center items-center p-6 text-center space-y-6 select-none">
-              <div className="text-5xl">🏆</div>
-              <div className="space-y-2">
-                <h1 className="font-heading font-extrabold text-3xl text-bone">
-                  Game Finished!
-                </h1>
-                <p className="text-sm text-ash">
-                  Check out the Host Screen for the winner podium and final territory map!
-                </p>
-              </div>
-              <button
-                onClick={() => setPlayerGameStatus('JOIN')}
-                className="px-8 py-3.5 bg-cyan-plasma text-obsidian font-heading font-extrabold text-sm rounded-2xl uppercase tracking-wider btn-tactile border-b-4 border-cyan-400"
-              >
-                Join Another Game
-              </button>
-            </div>
+            <ReportPlayer
+              player={playerInfo}
+              winner={playerEndReport?.winner}
+              leaderboard={playerEndReport?.leaderboard || []}
+              map={playerEndReport?.map || playerMap}
+              territoryStats={playerEndReport?.territoryStats}
+              onJoinAnother={() => {
+                setPlayerGameStatus('JOIN');
+                setPlayerEndReport(null);
+              }}
+            />
           )}
         </>
       )}
