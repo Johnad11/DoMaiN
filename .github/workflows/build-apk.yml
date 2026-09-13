@@ -19,6 +19,8 @@ jobs:
   build-apk:
     name: Compile Android Debug APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -67,17 +69,17 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Create Release (Optional / On Tag or Manual Run)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Publish Direct Download APK Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0-apk
-          name: DOMAINIT Android APK v1.0.0
+          tag_name: latest-apk
+          name: DOMAINIT Android App (Latest APK)
           body: |
-            ### 🎮 DOMAINIT Android APK Build
-            - Server Target: `${{ github.event.inputs.server_url || 'https://www.domainit.name.ng' }}`
-            - Anti-Cheat: Screen recording and screenshot blocking active (`FLAG_SECURE`).
-            - Ready for Android 8.0+ devices.
+            ### 📱 DOMAINIT Android APK Direct Download
+            Tap **`app-debug.apk`** below to download directly to your Android device.
+
+            - **Server**: `${{ github.event.inputs.server_url || 'https://www.domainit.name.ng' }}`
+            - **Anti-Cheat**: Screenshot & screen recording blocking active (`FLAG_SECURE`).
           files: android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

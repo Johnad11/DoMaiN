@@ -242,8 +242,16 @@ export default function JoinPlayer({
           </button>
         </form>
 
-        <div className="text-center text-[11px] text-ash">
-          Answer questions fast, claim your territory, and win!
+        <div className="text-center text-[11px] text-ash space-y-1.5 pt-1">
+          <div>Answer questions fast, claim your territory, and win!</div>
+          <div>
+            <a
+              href="https://github.com/Johnad11/DoMaiN/releases/download/latest-apk/app-debug.apk"
+              className="inline-flex items-center gap-1 text-cyan-plasma hover:underline font-semibold"
+            >
+              <span>📱 Download Android App (APK)</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>

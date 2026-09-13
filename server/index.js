@@ -40,6 +40,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: Date.now(), activeRooms: roomManager.rooms.size });
 });
 
+// Direct APK download link for mobile players
+app.get('/download', (req, res) => {
+  res.redirect('https://github.com/Johnad11/DoMaiN/releases/download/latest-apk/app-debug.apk');
+});
+
 app.get('/api/quizzes', (req, res) => {
   res.json({ quizzes: savedQuizzes });
 });
