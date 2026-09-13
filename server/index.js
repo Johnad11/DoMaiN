@@ -251,6 +251,11 @@ io.on('connection', (socket) => {
   });
 });
 
+// Direct APK download route
+app.get('/download', (req, res) => {
+  res.redirect('https://github.com/Johnad11/DoMaiN/releases/download/latest-apk/app-debug.apk');
+});
+
 // Kill legacy service workers registered by previous projects
 app.get('/sw.js', (req, res) => {
   res.set('Content-Type', 'application/javascript');

@@ -4,6 +4,7 @@ import HexAvatar from '../components/HexAvatar';
 import HowToPlayModal from '../components/HowToPlayModal';
 import DomainLogo from '../components/DomainLogo';
 import { sound } from '../audio/soundEngine';
+import { isNativeApp } from '../utils/serverUrl';
 
 const ALL_COLORS = [
   '#00E5FF', // Plasma Cyan
@@ -242,22 +243,24 @@ export default function JoinPlayer({
           </button>
         </form>
 
-        {/* Download Native APK Section */}
-        <div className="pt-3 border-t border-steel/50 space-y-3">
-          <div className="text-center text-[11px] text-ash">
-            Answer questions fast, claim your territory, and win!
-          </div>
+        {/* Download Native APK Section (only visible on regular web browser) */}
+        {!isNativeApp() && (
+          <div className="pt-3 border-t border-steel/50 space-y-3">
+            <div className="text-center text-[11px] text-ash">
+              Answer questions fast, claim your territory, and win!
+            </div>
 
-          <a
-            href="/download"
-            className="w-full py-3 px-4 bg-obsidian/90 hover:bg-obsidian border border-cyan-plasma/50 hover:border-cyan-plasma text-cyan-plasma font-heading font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all hover:shadow-cyan-glow group"
-            title="Download Android APK"
-          >
-            <Smartphone className="w-4 h-4 text-cyan-plasma group-hover:scale-110 transition-transform" />
-            <span>Download Android App (.apk)</span>
-            <Download className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
-          </a>
-        </div>
+            <a
+              href="/download"
+              className="w-full py-3 px-4 bg-obsidian/90 hover:bg-obsidian border border-cyan-plasma/50 hover:border-cyan-plasma text-cyan-plasma font-heading font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all hover:shadow-cyan-glow group"
+              title="Download Android APK"
+            >
+              <Smartphone className="w-4 h-4 text-cyan-plasma group-hover:scale-110 transition-transform" />
+              <span>Download Android App (.apk)</span>
+              <Download className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

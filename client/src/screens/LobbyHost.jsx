@@ -5,6 +5,7 @@ import HexAvatar from '../components/HexAvatar';
 import { sound } from '../audio/soundEngine';
 
 import DomainLogo from '../components/DomainLogo';
+import { getServerUrl, isNativeApp } from '../utils/serverUrl';
 
 export default function LobbyHost({
   pin,
@@ -25,7 +26,8 @@ export default function LobbyHost({
   // Generate QR Code for Mobile Scanning
   useEffect(() => {
     if (!pin) return;
-    const joinUrl = `${window.location.origin}/?pin=${pin}`;
+    const baseUrl = getServerUrl() || window.location.origin;
+    const joinUrl = `${baseUrl}/?pin=${pin}`;
     QRCode.toDataURL(joinUrl, {
       width: 180,
       margin: 1,
@@ -137,7 +139,7 @@ export default function LobbyHost({
           <div className="text-xs text-ash flex items-center justify-center gap-2">
             <span>Direct link:</span>
             <span className="text-bone underline truncate max-w-[240px]">
-              {window.location.origin}/?pin={pin}
+              {(getServerUrl() || window.location.origin)}/?pin={pin}
             </span>
           </div>
 
@@ -158,17 +160,19 @@ export default function LobbyHost({
             <span className="text-xs text-ash">
               Scan with phone camera to join
             </span>
-            <div className="flex items-center gap-1.5 text-xs text-ash">
-              <span>Prefer app?</span>
-              <a
-                href="/download"
-                target="_blank"
-                rel="noreferrer"
-                className="text-cyan-plasma hover:underline font-semibold"
-              >
-                Download Android APK
-              </a>
-            </div>
+            {!isNativeApp() && (
+              <div className="flex items-center gap-1.5 text-xs text-ash">
+                <span>Prefer app?</span>
+                <a
+                  href="/download"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-cyan-plasma hover:underline font-semibold"
+                >
+                  Download Android APK
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>

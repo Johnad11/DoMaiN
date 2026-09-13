@@ -11,6 +11,7 @@ import QuizSuggestionsModal from './components/QuizSuggestionsModal';
 import CreateCustomQuizModal from './components/CreateCustomQuizModal';
 import HowToPlayModal from './components/HowToPlayModal';
 import { sound } from './audio/soundEngine';
+import { getServerUrl } from './utils/serverUrl';
 
 export default function App() {
   const [role, setRole] = useState('player'); // 'host' or 'player'
@@ -69,7 +70,7 @@ export default function App() {
 
   // Fetch quizzes on mount
   useEffect(() => {
-    fetch('/api/quizzes')
+    fetch(`${getServerUrl()}/api/quizzes`)
       .then(res => res.json())
       .then(data => {
         if (data.quizzes && data.quizzes.length > 0) {
@@ -79,25 +80,6 @@ export default function App() {
       })
       .catch(err => console.error('Failed to load quizzes:', err));
   }, []);
-
-  // Helper to determine the target game server URL for web and native mobile APK
-  const getServerUrl = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('domainit_server_url');
-      if (saved && saved.trim()) return saved.trim();
-
-      if (import.meta.env.VITE_SERVER_URL) {
-        return import.meta.env.VITE_SERVER_URL;
-      }
-
-      const origin = window.location.origin || '';
-      const isCapacitor = origin.includes('capacitor://') || origin.startsWith('file://') || origin.startsWith('https://localhost');
-      if (!isCapacitor && origin.startsWith('http')) {
-        return origin;
-      }
-    }
-    return import.meta.env.VITE_SERVER_URL || 'https://www.domainit.name.ng';
-  };
 
   // Initialize Socket.IO connection
   useEffect(() => {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Plus, Trash2, CheckCircle2, Play, Cpu } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
+import { getServerUrl } from '../utils/serverUrl';
 
 export default function QuizForgeModal({ isOpen, onClose, onQuizCreated }) {
   const [topic, setTopic] = useState('');
@@ -26,7 +27,7 @@ export default function QuizForgeModal({ isOpen, onClose, onQuizCreated }) {
     sound.playSurge();
 
     try {
-      const res = await fetch('/api/quiz-forge', {
+      const res = await fetch(`${getServerUrl()}/api/quiz-forge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

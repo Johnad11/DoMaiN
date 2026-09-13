@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PlusCircle, Trash2, CheckCircle2, Play, Plus, Clock, HelpCircle, Sparkles, X } from 'lucide-react';
 import { sound } from '../audio/soundEngine';
+import { getServerUrl } from '../utils/serverUrl';
 
 const OPTION_THEMES = [
   { label: 'A', bg: 'bg-cyan-plasma/10', border: 'border-cyan-plasma/40', text: 'text-cyan-plasma', ring: 'ring-cyan-plasma' },
@@ -141,7 +142,7 @@ export default function CreateCustomQuizModal({
     sound.playSurge();
 
     try {
-      const res = await fetch('/api/quizzes/custom', {
+      const res = await fetch(`${getServerUrl()}/api/quizzes/custom`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
