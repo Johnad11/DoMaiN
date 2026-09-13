@@ -7,9 +7,28 @@ export default function QuizSuggestionsModal({ isOpen, onClose, onQuizCreated, o
   const [topic, setTopic] = useState('');
   const [sourceText, setSourceText] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [questionCount, setQuestionCount] = useState(12);
+  const [questionCount, setQuestionCount] = useState(6);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [loadStep, setLoadStep] = useState(0);
+
+  const LOADING_STEPS = [
+    'Connecting to Google Gemini 3.8 Flash AI...',
+    'Composing trivia questions & distractors...',
+    'Verifying answers and hex territory values...',
+    'Finalizing game deck...'
+  ];
+
+  React.useEffect(() => {
+    if (!isGenerating) {
+      setLoadStep(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setLoadStep((prev) => (prev + 1) % LOADING_STEPS.length);
+    }, 1800);
+    return () => clearInterval(timer);
+  }, [isGenerating]);
 
   // Review / Editor State
   const [suggestedQuiz, setSuggestedQuiz] = useState(null);
@@ -91,11 +110,16 @@ export default function QuizSuggestionsModal({ isOpen, onClose, onQuizCreated, o
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-heading font-extrabold text-lg text-bone">
-                Quiz Suggestions
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-heading font-extrabold text-lg text-bone">
+                  Quiz Suggestions
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-plasma/15 border border-cyan-plasma/40 text-cyan-plasma text-[10px] font-mono font-bold">
+                  ⚡ Gemini 3.8 Flash
+                </span>
+              </div>
               <p className="text-xs text-ash">
-                Pick a topic and instantly get ready-to-play questions
+                Pick a topic and get high-quality trivia written by Google Gemini
               </p>
             </div>
           </div>
@@ -178,17 +202,19 @@ export default function QuizSuggestionsModal({ isOpen, onClose, onQuizCreated, o
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="w-full py-4 bg-cyan-plasma hover:bg-cyan-plasma/90 text-obsidian font-heading font-extrabold text-base rounded-2xl uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-cyan-glow btn-tactile border-b-4 border-cyan-400 disabled:opacity-50"
+                className="w-full py-4 bg-cyan-plasma hover:bg-cyan-plasma/90 text-obsidian font-heading font-extrabold text-base rounded-2xl uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-cyan-glow btn-tactile border-b-4 border-cyan-400 disabled:opacity-85"
               >
                 {isGenerating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Preparing {questionCount} Questions...</span>
-                  </>
+                  <div className="flex items-center gap-2.5">
+                    <Loader2 className="w-5 h-5 animate-spin text-obsidian" />
+                    <span className="animate-pulse text-sm">
+                      {LOADING_STEPS[loadStep]}
+                    </span>
+                  </div>
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
-                    <span>Get Quiz Suggestions</span>
+                    <span>Generate With Gemini 3.8 Flash</span>
                   </>
                 )}
               </button>

@@ -302,16 +302,23 @@ Create exactly ${count} high-quality trivia questions about: ${prompt}`;
     }
   });
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const candidateModels = [
+    process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+    'gemini-3.5-flash',
+    'gemini-2.5-flash',
+    'gemini-flash-latest'
+  ];
+  const uniqueModels = [...new Set(candidateModels)];
 
-  return new Promise((resolve, reject) => {
+  const requestGemini = (url) => new Promise((resolve, reject) => {
     const req = https.request(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-goog-api-key': apiKey,
         'Content-Length': Buffer.byteLength(payload)
-      }
+      },
+      timeout: 18000
     }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -321,47 +328,74 @@ Create exactly ${count} high-quality trivia questions about: ${prompt}`;
           if (parsed.error) {
             return reject(new Error(parsed.error.message || 'Gemini API returned an error'));
           }
-          const textCandidate = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!textCandidate) {
-            return reject(new Error('No response content from Gemini'));
+          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) {
+            return reject(new Error('No response content from Gemini candidate'));
           }
-          const quiz = JSON.parse(textCandidate);
-          quiz.id = `quiz-gemini-${Date.now()}`;
-          // Clean title: remove any Forge Master artifacts
-          quiz.title = (quiz.title || prompt).replace(/\s*\{Forge Master\}|\s*\[Forge Master\]/gi, '').trim();
-
-          // Normalize questions structure
-          if (Array.isArray(quiz.questions)) {
-            quiz.questions = quiz.questions.map((q, idx) => {
-              const text = q.text || q.question_text || q.question || `Question ${idx + 1}`;
-              const options = Array.isArray(q.options) ? q.options : ['Yes', 'No'];
-              let correctIndex = typeof q.correctIndex === 'number' ? q.correctIndex : 0;
-              if (q.correct_answer && options.includes(q.correct_answer)) {
-                correctIndex = options.indexOf(q.correct_answer);
-              }
-              return {
-                id: q.id || `gemini_${Date.now()}_${idx + 1}`,
-                text,
-                type: q.type || (options.length === 2 ? 'true_false' : 'multiple_choice'),
-                timeLimit: q.timeLimit || 20,
-                options,
-                correctIndex,
-                explanation: q.explanation || ''
-              };
-            });
-          }
-
-          resolve(quiz);
+          resolve(text);
         } catch (err) {
           reject(err);
         }
       });
     });
 
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Gemini request timed out'));
+    });
     req.on('error', reject);
     req.write(payload);
     req.end();
   });
+
+  let textCandidate = null;
+  let lastError = null;
+
+  for (const model of uniqueModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      textCandidate = await requestGemini(url);
+      if (textCandidate) {
+        console.log(`[DO-MAIN-IT] Quiz successfully generated using ${model}`);
+        break;
+      }
+    } catch (err) {
+      console.warn(`[DO-MAIN-IT] Gemini model ${model} unavailable (${err.message}), falling back...`);
+      lastError = err;
+    }
+  }
+
+  if (!textCandidate) {
+    throw lastError || new Error('All Gemini model candidates failed');
+  }
+
+  const quiz = JSON.parse(textCandidate);
+  quiz.id = `quiz-gemini-${Date.now()}`;
+  // Clean title: remove any Forge Master artifacts
+  quiz.title = (quiz.title || prompt).replace(/\s*\{Forge Master\}|\s*\[Forge Master\]/gi, '').trim();
+
+  // Normalize questions structure
+  if (Array.isArray(quiz.questions)) {
+    quiz.questions = quiz.questions.map((q, idx) => {
+      const text = q.text || q.question_text || q.question || `Question ${idx + 1}`;
+      const options = Array.isArray(q.options) ? q.options : ['Yes', 'No'];
+      let correctIndex = typeof q.correctIndex === 'number' ? q.correctIndex : 0;
+      if (q.correct_answer && options.includes(q.correct_answer)) {
+        correctIndex = options.indexOf(q.correct_answer);
+      }
+      return {
+        id: q.id || `gemini_${Date.now()}_${idx + 1}`,
+        text,
+        type: q.type || (options.length === 2 ? 'true_false' : 'multiple_choice'),
+        timeLimit: q.timeLimit || 20,
+        options,
+        correctIndex,
+        explanation: q.explanation || ''
+      };
+    });
+  }
+
+  return quiz;
 }
 
 /**
