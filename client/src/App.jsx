@@ -96,7 +96,7 @@ export default function App() {
         return origin;
       }
     }
-    return import.meta.env.VITE_SERVER_URL || 'https://domainit.onrender.com';
+    return import.meta.env.VITE_SERVER_URL || 'https://www.domainit.name.ng';
   };
 
   // Initialize Socket.IO connection
