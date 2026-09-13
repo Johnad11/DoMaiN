@@ -1,0 +1,83 @@
+name: Build Android APK (DOMAINIT)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - 'client/**'
+      - 'capacitor.config.json'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: 'Server URL for the mobile app to connect to (e.g. https://domainit.onrender.com)'
+        required: false
+        default: 'https://domainit.onrender.com'
+
+jobs:
+  build-apk:
+    name: Compile Android Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root & Client Dependencies
+        run: |
+          npm install
+          npm install --prefix client
+
+      - name: Build Web Client Bundle
+        env:
+          VITE_SERVER_URL: ${{ github.event.inputs.server_url || 'https://domainit.onrender.com' }}
+        run: |
+          npm run build --prefix client
+
+      - name: Sync Web Assets to Android Native Project
+        run: |
+          npx cap sync android
+
+      - name: Set up Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Android APK with Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: domainit-android-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Create Release (Optional / On Tag or Manual Run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-apk
+          name: DOMAINIT Android APK v1.0.0
+          body: |
+            ### 🎮 DOMAINIT Android APK Build
+            - Server Target: `${{ github.event.inputs.server_url || 'https://domainit.onrender.com' }}`
+            - Anti-Cheat: Screen recording and screenshot blocking active (`FLAG_SECURE`).
+            - Ready for Android 8.0+ devices.
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

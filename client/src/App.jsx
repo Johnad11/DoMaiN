@@ -80,9 +80,30 @@ export default function App() {
       .catch(err => console.error('Failed to load quizzes:', err));
   }, []);
 
+  // Helper to determine the target game server URL for web and native mobile APK
+  const getServerUrl = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('domainit_server_url');
+      if (saved && saved.trim()) return saved.trim();
+
+      if (import.meta.env.VITE_SERVER_URL) {
+        return import.meta.env.VITE_SERVER_URL;
+      }
+
+      const origin = window.location.origin || '';
+      const isCapacitor = origin.includes('capacitor://') || origin.startsWith('file://') || origin.startsWith('https://localhost');
+      if (!isCapacitor && origin.startsWith('http')) {
+        return origin;
+      }
+    }
+    return import.meta.env.VITE_SERVER_URL || 'https://domainit.onrender.com';
+  };
+
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io(window.location.origin, {
+    const targetUrl = getServerUrl();
+    console.log('[Socket] Connecting to server:', targetUrl);
+    const newSocket = io(targetUrl, {
       transports: ['websocket', 'polling']
     });
 
