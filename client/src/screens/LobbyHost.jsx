@@ -158,6 +158,17 @@ export default function LobbyHost({
             <span className="text-xs text-ash">
               Scan with phone camera to join
             </span>
+            <div className="flex items-center gap-1.5 text-xs text-ash">
+              <span>Prefer app?</span>
+              <a
+                href="/download"
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyan-plasma hover:underline font-semibold"
+              >
+                Download Android APK
+              </a>
+            </div>
           </div>
         )}
       </div>
